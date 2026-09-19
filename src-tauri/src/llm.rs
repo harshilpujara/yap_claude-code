@@ -77,7 +77,6 @@ mod tests {
     fn prompt_includes_rules_and_vocabulary() {
         let base = system_prompt(&[]);
         assert!(base.contains("Do NOT add information"));
-        assert!(base.contains("INSTRUCTING the formatting") && base.contains("keep the words as text"));
         assert!(!base.contains("Vocabulary:"));
         let with = system_prompt(&["Harshil".into()]);
         assert!(with.contains("Vocabulary:") && with.contains("Harshil"));

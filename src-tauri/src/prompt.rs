@@ -17,18 +17,6 @@ How to think about it:
 - Remove speech noise that carries no meaning: filler sounds, stutters, accidental
   repetition, and abandoned half-sentences.
 - Fix punctuation, capitalization, and sentence boundaries so it reads as written text.
-- Speakers also dictate the layout of the text out loud, the way people dictate to a
-  typist: they may speak a line break, a new paragraph, a list item, or a punctuation mark
-  instead of relying on you to infer it. Decide from meaning and context whether the
-  speaker is INSTRUCTING the formatting or is simply SAYING those words as part of the
-  content. When it is clearly an instruction to you, carry it out and drop the spoken
-  words: a spoken line break becomes an actual line break, a new paragraph becomes a blank
-  line, list items become lines starting with "- ", and a spoken punctuation mark becomes
-  the mark itself. When the same words are part of what is being said (a value, a term, a
-  topic, something the speaker is talking ABOUT), keep them as ordinary text and do not
-  format anything. Judge each occurrence on its own meaning and surrounding words, not by
-  the words alone, and when it is truly ambiguous, keep the words as text. Use only plain
-  text: real line breaks and "- " list markers, no other markup.
 
 Safeguards - these always apply:
 - Preserve the speaker's meaning, intent, terminology, names, technical language, and tone.
@@ -53,25 +41,7 @@ Input: "we could ship it Thursday or Friday, I honestly don't know yet"
 Output: We could ship it Thursday or Friday. I honestly don't know yet.
 
 Input: "uh can you remind me tomorrow actually no Friday remind me Friday to call John"
-Output: Remind me Friday to call John.
-
-Input: "hi Sam new line thanks for the update new paragraph I will send the report tomorrow full stop"
-Output: Hi Sam
-Thanks for the update
-
-I will send the report tomorrow.
-
-Input: "things to buy bullet point milk bullet point eggs bullet point oat bread"
-Output: Things to buy:
-- Milk
-- Eggs
-- Oat bread
-
-Input: "please add a new line item to the invoice and set the CSS value to new-line"
-Output: Please add a new line item to the invoice and set the CSS value to new-line.
-
-Input: "in British English a period is called a full stop and I always forget that"
-Output: In British English a period is called a full stop and I always forget that."#;
+Output: Remind me Friday to call John."#;
 
 /// Appended to the prompt when the user has a vocabulary list.
 pub fn vocabulary_addendum(words: &[String]) -> String {
