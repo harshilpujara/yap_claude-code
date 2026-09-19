@@ -1,18 +1,78 @@
 const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 const $ = (id) => document.getElementById(id);
 
-const recordBtn = $("record");
-const statusEl = $("status");
-let recording = false;
 let lastPath = null;
 
 function setStatus(text) {
-  statusEl.textContent = "Status: " + text;
+  $("status").textContent = text;
 }
+
+// ---------- Live state from the Rust pipeline ----------
+const LABELS = { idle: "Idle", recording: "Recording", processing: "Working", error: "Problem" };
+
+function showState({ state, message }) {
+  const ind = $("indicator");
+  ind.className = "indicator " + state;
+  $("indicator-text").textContent = LABELS[state] || state;
+  setStatus(message);
+}
+
+listen("flow://state", (e) => showState(e.payload));
+
+listen("flow://result", (e) => {
+  const r = e.payload;
+  lastPath = r.recording_path;
+  $("result").hidden = false;
+  $("raw").textContent = r.raw || "(no speech detected)";
+  $("clean").textContent = r.cleanup_error ? "(cleanup failed - see status above)" : r.clean;
+  $("info").textContent = r.info;
+});
+
+$("reveal").addEventListener("click", () => {
+  if (lastPath) invoke("reveal_recording", { path: lastPath }).catch((e) => setStatus("error - " + e));
+});
+
+// ---------- Hotkey capture ----------
+const MODIFIER_CODES = new Set([
+  "ControlLeft", "ControlRight", "ShiftLeft", "ShiftRight",
+  "AltLeft", "AltRight", "MetaLeft", "MetaRight",
+]);
+
+function keyName(code) {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (code.startsWith("Arrow")) return code.slice(5);
+  return code; // Space, Enter, F9, ...
+}
+
+function hotkeyFromEvent(e) {
+  if (MODIFIER_CODES.has(e.code)) return null;
+  const isFunctionKey = /^F\d{1,2}$/.test(e.code);
+  if (!(e.ctrlKey || e.altKey || e.shiftKey || e.metaKey) && !isFunctionKey) return null;
+  const parts = [];
+  if (e.ctrlKey) parts.push("Ctrl");
+  if (e.altKey) parts.push("Alt");
+  if (e.shiftKey) parts.push("Shift");
+  if (e.metaKey) parts.push("Super");
+  parts.push(keyName(e.code));
+  return parts.join("+");
+}
+
+$("hotkey").addEventListener("keydown", (e) => {
+  e.preventDefault();
+  const combo = hotkeyFromEvent(e);
+  if (combo) $("hotkey").value = combo;
+});
+$("hotkey-reset").addEventListener("click", () => {
+  $("hotkey").value = "Ctrl+Space";
+});
 
 // ---------- Settings ----------
 async function loadSettings() {
   const s = await invoke("get_settings");
+  $("hotkey").value = s.hotkey;
+  $("hotkey-label").textContent = s.hotkey;
   $("stt-base-url").value = s.stt_base_url;
   $("stt-model").value = s.stt_model;
   $("stt-language").value = s.stt_language;
@@ -30,6 +90,13 @@ async function loadSettings() {
   if (!s.has_stt_key) $("settings").open = true;
 }
 
+async function showHotkeyStatus() {
+  const h = await invoke("get_hotkey_status");
+  const box = $("hotkey-error");
+  box.hidden = !h.error;
+  box.textContent = h.error || "";
+}
+
 async function saveSettings({ sttKey = null, llmKey = null } = {}) {
   try {
     await invoke("save_settings", {
@@ -40,11 +107,13 @@ async function saveSettings({ sttKey = null, llmKey = null } = {}) {
         llm_base_url: $("llm-base-url").value,
         llm_model: $("llm-model").value,
         vocabulary: $("vocabulary").value,
+        hotkey: $("hotkey").value,
       },
       sttKey,
       llmKey,
     });
     await loadSettings();
+    await showHotkeyStatus();
     setStatus("settings saved - checking models...");
     const check = await invoke("check_models");
     const box = $("model-check");
@@ -67,82 +136,6 @@ $("save").addEventListener("click", () => {
 $("clear-stt-key").addEventListener("click", () => saveSettings({ sttKey: "" }));
 $("clear-llm-key").addEventListener("click", () => saveSettings({ llmKey: "" }));
 
-// ---------- Recording pipeline ----------
-async function start() {
-  if (recording) return;
-  recording = true;
-  recordBtn.classList.add("active");
-  recordBtn.textContent = "Recording... release to stop";
-  setStatus("recording");
-  try {
-    await invoke("start_recording");
-  } catch (e) {
-    recording = false;
-    recordBtn.classList.remove("active");
-    recordBtn.textContent = "Hold to record";
-    setStatus("error - " + e);
-  }
-}
-
-async function stop() {
-  if (!recording) return;
-  recording = false;
-  recordBtn.classList.remove("active");
-  recordBtn.textContent = "Hold to record";
-  setStatus("saving...");
-  let r;
-  try {
-    r = await invoke("stop_recording");
-  } catch (e) {
-    setStatus("error - " + e);
-    return;
-  }
-  lastPath = r.path;
-  const quiet = r.peak < 0.01 ? " WARNING: almost silent - check your microphone." : "";
-  $("info").textContent = `Recorded ${r.original_seconds.toFixed(1)}s, sent ${r.seconds.toFixed(1)}s after trimming silence.${quiet}`;
-  $("result").hidden = false;
-  $("raw").textContent = "";
-  $("clean").textContent = "";
-
-  setStatus("transcribing...");
-  const t0 = performance.now();
-  let raw;
-  try {
-    raw = await invoke("transcribe_last");
-  } catch (e) {
-    setStatus("error - " + e);
-    return;
-  }
-  const sttSecs = ((performance.now() - t0) / 1000).toFixed(1);
-  $("raw").textContent = raw || "(no speech detected)";
-  if (!raw) {
-    setStatus(`done (transcribed in ${sttSecs}s, nothing to clean)`);
-    return;
-  }
-
-  setStatus("cleaning up...");
-  const t1 = performance.now();
-  try {
-    const clean = await invoke("cleanup_text", { raw });
-    const llmSecs = ((performance.now() - t1) / 1000).toFixed(1);
-    $("clean").textContent = clean || "(empty result)";
-    setStatus(`done (transcribed ${sttSecs}s + cleaned ${llmSecs}s)`);
-  } catch (e) {
-    setStatus("cleanup error - " + e);
-  }
-}
-
-recordBtn.addEventListener("pointerdown", (e) => {
-  recordBtn.setPointerCapture(e.pointerId);
-  start();
-});
-recordBtn.addEventListener("pointerup", stop);
-recordBtn.addEventListener("pointercancel", stop);
-
-$("reveal").addEventListener("click", () => {
-  if (lastPath) invoke("reveal_recording", { path: lastPath }).catch((e) => setStatus("error - " + e));
-});
-
 // ---------- Typed-text tester ----------
 $("test-run").addEventListener("click", async () => {
   const raw = $("test-input").value;
@@ -157,3 +150,4 @@ $("test-run").addEventListener("click", async () => {
 });
 
 loadSettings().catch((e) => setStatus("error - " + e));
+showHotkeyStatus().catch(() => {});

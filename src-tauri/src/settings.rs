@@ -27,6 +27,8 @@ pub struct Config {
     pub llm_model: String,
     /// Names and uncommon words, separated by commas or new lines.
     pub vocabulary: String,
+    /// Global toggle hotkey, e.g. "Ctrl+Space".
+    pub hotkey: String,
 }
 
 impl Default for Config {
@@ -38,6 +40,7 @@ impl Default for Config {
             llm_base_url: DEFAULT_BASE_URL.into(),
             llm_model: DEFAULT_LLM_MODEL.into(),
             vocabulary: String::new(),
+            hotkey: "Ctrl+Space".into(),
         }
     }
 }
@@ -171,6 +174,11 @@ pub fn save_settings(
         return Err("Language must be a short code like \"en\", or \"auto\".".into());
     }
     c.vocabulary = c.vocabulary.trim().chars().take(MAX_VOCAB_CHARS).collect();
+    c.hotkey = c.hotkey.trim().to_string();
+    if c.hotkey.is_empty() {
+        return Err("Please choose a hotkey.".into());
+    }
+    crate::pipeline::register_hotkey(&app, &c.hotkey)?;
 
     let json = serde_json::to_string_pretty(&c).map_err(|e| e.to_string())?;
     std::fs::write(config_path(&app)?, json).map_err(|e| e.to_string())?;

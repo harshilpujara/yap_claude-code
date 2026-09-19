@@ -12,6 +12,14 @@ label { display: block; font-size: .85rem; margin-top: .6rem; }
 h2 { font-size: .95rem; margin: 1rem 0 0; }
 .check { text-align: left; white-space: pre-wrap; font-size: .85rem; margin: .6rem 0 0; padding: .5rem .7rem; border-radius: .5rem; border: 1px solid #16a34a88; }
 .check.bad { border-color: #dc2626aa; }
+.indicator { display: inline-flex; align-items: center; gap: .6rem; padding: .7rem 1.4rem; border-radius: 999px; border: 1px solid #8884; font-weight: 600; }
+.indicator .dot { width: .8rem; height: .8rem; border-radius: 50%; background: #9ca3af; }
+.indicator.recording .dot { background: #dc2626; animation: pulse 1s infinite; }
+.indicator.processing .dot { background: #f59e0b; animation: pulse 1s infinite; }
+.indicator.error .dot { background: #dc2626; }
+.indicator.idle .dot { background: #16a34a; }
+@keyframes pulse { 50% { opacity: .35; } }
+#hotkey { cursor: pointer; text-align: center; font-weight: 600; }
 .tester { margin: 1.25rem 0 0; }
 textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; margin-top: .2rem; resize: vertical; }
 .row { flex-wrap: wrap; }

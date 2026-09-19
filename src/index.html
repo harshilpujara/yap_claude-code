@@ -9,10 +9,36 @@
   <body>
     <main>
       <h1>Flow</h1>
-      <p class="sub">Cleanup test (temporary)</p>
+      <p class="sub">Debug view (temporary)</p>
+
+      <div id="indicator" class="indicator idle">
+        <span class="dot"></span>
+        <span id="indicator-text">Idle</span>
+      </div>
+      <p id="hint" class="hint">Press <strong id="hotkey-label">Ctrl+Space</strong> anywhere to start recording, and again to stop.</p>
+      <p id="hotkey-error" class="check bad" hidden></p>
+      <p id="status" class="status"></p>
+
+      <div id="result" hidden>
+        <p class="label">Raw transcript (before)</p>
+        <p id="raw" class="transcript"></p>
+        <p class="label">Cleaned (after)</p>
+        <p id="clean" class="transcript"></p>
+        <p id="info" class="hint"></p>
+        <button id="reveal" type="button" class="secondary">Show recording in folder</button>
+      </div>
 
       <details id="settings">
         <summary>Settings</summary>
+
+        <h2>Hotkey</h2>
+        <label>Toggle recording (click the box, then press the keys you want)
+          <input id="hotkey" type="text" readonly spellcheck="false" />
+        </label>
+        <div class="row">
+          <button id="hotkey-reset" type="button" class="secondary">Reset to Ctrl+Space</button>
+        </div>
+        <p class="hint">Press once to start, again to stop. Use at least one of Ctrl / Alt / Shift with a key, or a function key like F9.</p>
 
         <h2>Transcription (speech to text)</h2>
         <label>Service address
@@ -56,18 +82,6 @@
         <p class="hint">If a model stops working, type a different name in its Model box and Save. Cleanup fallbacks: meta-llama/llama-4-scout-17b-16e-instruct or openai/gpt-oss-20b.</p>
         <p class="hint">Keys are stored in Windows Credential Manager on this PC, never in a file. Leave a key box empty to keep the saved key.</p>
       </details>
-
-      <button id="record" type="button">Hold to record</button>
-      <p id="status" class="status">Status: idle</p>
-
-      <div id="result" hidden>
-        <p class="label">Raw transcript (before)</p>
-        <p id="raw" class="transcript"></p>
-        <p class="label">Cleaned (after)</p>
-        <p id="clean" class="transcript"></p>
-        <p id="info" class="hint"></p>
-        <button id="reveal" type="button" class="secondary">Show recording in folder</button>
-      </div>
 
       <details class="tester">
         <summary>Test cleanup with typed text (no microphone)</summary>
