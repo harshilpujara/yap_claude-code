@@ -9,8 +9,8 @@ if (!/^\d+\.\d+\.\d+$/.test(version || "")) {
   console.error("Give a version like 0.1.0 (numbers only):  npm run release -- 0.1.0");
   process.exit(1);
 }
-const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: "inherit", shell: process.platform === "win32", ...opts });
-const out = (cmd, args) => execFileSync(cmd, args, { encoding: "utf8", shell: process.platform === "win32" }).trim();
+const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: "inherit", ...opts });
+const out = (cmd, args) => execFileSync(cmd, args, { encoding: "utf8" }).trim();
 
 if (out("git", ["status", "--porcelain"])) {
   console.error("You have uncommitted changes. Commit or discard them first, then run this again.");
