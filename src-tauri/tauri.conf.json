@@ -5,6 +5,7 @@
   "identifier": "com.flow.voice",
   "build": { "frontendDist": "../src" },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       { "title": "Flow", "width": 480, "height": 320, "resizable": true }
     ],
