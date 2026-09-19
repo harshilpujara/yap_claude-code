@@ -20,6 +20,17 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"]
+    "publisher": "yapp",
+    "shortDescription": "Free voice-to-text for Windows",
+    "longDescription": "Hold a hotkey, talk, and clean text appears at your cursor. Uses your own API keys.",
+    "copyright": "yapp",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "languages": ["English"]
+      }
+    }
   }
 }

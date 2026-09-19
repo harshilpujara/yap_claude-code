@@ -1,5 +1,12 @@
 # Progress
 
+## M11 - Packaging + release pipeline (built, awaiting first real release)
+- Bundler: NSIS installer `yapp_<version>_x64-setup.exe`, product name/publisher "yapp", icon set, per-user install (no admin), English only. Verified locally with `npm run tauri build`.
+- Versioning: one number kept in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (+ lockfile). `npm run release -- X.Y.Z` (`scripts/release.mjs`) updates all, commits, and creates tag `vX.Y.Z`; it refuses on a dirty tree or an existing tag and never pushes.
+- Workflow: still builds on push to `main`/PRs; a pushed `v*` tag also checks tag == app version and attaches the installer to a GitHub Release (`softprops/action-gh-release`, auto release notes).
+- README: "Cut a release" steps, plain-English SmartScreen/unsigned-app note (More info -> Run anyway; signing optional and paid, later), manual update path.
+- Not yet verified: the tag-triggered Release run (needs the human to push the first tag).
+
 ## M10 - Reliability & privacy defaults (built, awaiting human failure-case testing)
 - Checked first: no "keep recent recordings"/audio-retention setting was ever added, so nothing to remove.
 - Privacy: the temp WAV is deleted right after transcription finishes (success or failure), on any pipeline exit (`ProcessingGuard`), and at every app start. The "Show recording in folder" button and `reveal_recording` command are gone. No transcript logging (the only `eprintln!` prints microphone error text, never speech), no telemetry, no crash upload. "Last dictation" in Settings is memory-only. Settings has a Privacy section and the README states the same.
