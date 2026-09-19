@@ -1,13 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Flow",
+  "productName": "yapp",
   "version": "0.1.0",
-  "identifier": "com.flow.voice",
+  "identifier": "com.yapp.app",
   "build": { "frontendDist": "../src" },
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "title": "Flow", "width": 560, "height": 780, "resizable": true }
+      { "title": "yapp", "width": 560, "height": 780, "resizable": true }
     ],
     "security": { "csp": null }
   },

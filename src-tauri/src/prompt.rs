@@ -1,4 +1,4 @@
-// The default cleanup prompt. Edit this text to tune how Flow rewrites speech.
+// The default cleanup prompt. Edit this text to tune how yapp rewrites speech.
 pub const CLEANUP_SYSTEM_PROMPT: &str = r#"You turn a raw voice transcript into the message the speaker actually intended to WRITE.
 Speech is not writing: people think out loud, so a transcript contains the path to the
 thought as well as the thought itself. Your job is to reconstruct the finished message,

@@ -189,7 +189,7 @@ fn write_wav(c: &Captured) -> Result<RecordingResult, String> {
     let resampled = resample(&c.samples, c.sample_rate, TARGET_RATE);
     let trimmed = trim_silence(&resampled, TARGET_RATE);
 
-    let path = std::env::temp_dir().join("flow_last_recording.wav");
+    let path = std::env::temp_dir().join("yapp_last_recording.wav");
     let spec = hound::WavSpec {
         channels: 1,
         sample_rate: TARGET_RATE,

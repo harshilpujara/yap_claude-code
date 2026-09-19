@@ -1,4 +1,4 @@
-# Flow
+# yapp
 
 Free voice-to-text for Windows. Hold a hotkey, talk, release, and clean text appears at your cursor.
 

@@ -1,5 +1,10 @@
 # Progress
 
+## Rename Flow -> yapp (done)
+- Renamed everywhere: product name, window title, bundle identifier (`com.yapp.app`), Cargo/npm package names (binary is `yapp.exe`), UI copy, event names (`yapp://state`, `yapp://result`), temp file (`yapp_last_recording.wav`), CI artifact (`yapp-windows-installer`), README, docs.
+- Migration: on startup `settings::migrate_legacy` copies the old settings file (`%APPDATA%\com.flow.voice`) and moves the API keys from Credential Manager service "Flow" to "yapp". No need to re-enter keys. The old copies are removed once moved.
+- Intentionally left: "Wispr Flow"/"data flow"/"workflow" wording in EXECUTION_PLAN.md and the legacy names inside `migrate_legacy`.
+
 ## M0 - Environment check (done)
 - rustc 1.98.1, cargo 1.98.1, node 22.18.0, git 2.54.0, VS C++ Build Tools present. Hello-world Rust build succeeded.
 
@@ -32,10 +37,10 @@
 ## M6 - Global hotkey, toggle mode (verified by human, Paste mode)
 - Human-verified: the global hotkey works from other apps end to end (record, transcribe, clean).
 - Spec change from the human (overrides the plan's hold-to-record): press the hotkey once to start recording, again to stop and process. Default `Ctrl+Space`, configurable in Settings.
-- Built: `pipeline.rs` - registers the hotkey with `tauri-plugin-global-shortcut` (Rust side, so it works with the window in the background), toggles record/stop, and runs record -> transcribe -> cleanup, emitting `flow://state` and `flow://result` events. Key auto-repeat is ignored via a press/release flag. Extra presses while processing are ignored with a status message. Changing the hotkey in Settings registers the new one first, so a failure (e.g. taken by another app) keeps the old one and shows a clear error. Startup registration failures show in the window.
+- Built: `pipeline.rs` - registers the hotkey with `tauri-plugin-global-shortcut` (Rust side, so it works with the window in the background), toggles record/stop, and runs record -> transcribe -> cleanup, emitting `yapp://state` and `yapp://result` events. Key auto-repeat is ignored via a press/release flag. Extra presses while processing are ignored with a status message. Changing the hotkey in Settings registers the new one first, so a failure (e.g. taken by another app) keeps the old one and shows a clear error. Startup registration failures show in the window.
 - UI: temporary Record button removed; status indicator (idle / recording / working / problem) plus the before/after view stay as a debug window. Hotkey is set by clicking a box and pressing the keys. `start_recording`/`stop_recording` commands removed (recording is Rust-driven).
 - Config: new `hotkey` field (default `Ctrl+Space`; older settings files load fine).
-- Verified: 14 unit tests pass (includes hotkey string parsing). The full app build could not be re-linked because a running Flow window locked `flow.exe`; not run end to end (needs the human).
+- Verified: 14 unit tests pass (includes hotkey string parsing). The full app build could not be re-linked because a running yapp window locked `yapp.exe`; not run end to end (needs the human).
 - Known limits for later milestones: text is only shown in the window (insertion at the cursor is M7); closing the window quits the app (tray/background is M9); no auto-stop if you forget to press the hotkey again (the 10-minute cap still applies).
 
 ### M5 fix - retired Groq model (verified by human)
@@ -50,19 +55,19 @@
 - Test: `npm run tauri dev`, record a long, very fast run-on sentence, compare the transcript.
 
 ## M3 - Transcription via user key (verified by human)
-- Built: `src-tauri/src/stt.rs`. Settings (service address, model) saved as JSON in the app config folder; the API key is stored only in Windows Credential Manager (`keyring`, service "Flow"). On release, the UI calls `stop_recording` then `transcribe_last`, which POSTs `%TEMP%\flow_last_recording.wav` to `{base_url}/audio/transcriptions` (OpenAI-compatible; defaults: Groq, `whisper-large-v3-turbo`) and shows the transcript. Friendly errors for bad key, rate limit, no network, timeout.
+- Built: `src-tauri/src/stt.rs`. Settings (service address, model) saved as JSON in the app config folder; the API key is stored only in Windows Credential Manager (`keyring`, service "yapp" (was "yapp" before the rename; migrated automatically)). On release, the UI calls `stop_recording` then `transcribe_last`, which POSTs `%TEMP%\yapp_last_recording.wav` to `{base_url}/audio/transcriptions` (OpenAI-compatible; defaults: Groq, `whisper-large-v3-turbo`) and shows the transcript. Friendly errors for bad key, rate limit, no network, timeout.
 - TLS uses Windows' built-in Schannel (`reqwest` `native-tls`) so no CMake/NASM is needed.
 - Verified: `cargo check` passes. Not tested against real Groq (needs the human's key).
 - Test: `npm run tauri dev`, open Settings, paste Groq key, Save, hold the button, speak, release.
 
 ## M2 - Microphone capture (verified by human)
 - Built: `src-tauri/src/audio.rs` (cpal capture on a dedicated thread, downmixed to mono, in-memory buffer, written as 16-bit WAV via `hound`), Tauri commands `start_recording` / `stop_recording` / `reveal_recording` in `main.rs`, and a temporary hold-to-record button in `src/` (`index.html`, `app.js`, `styles.css`). `withGlobalTauri` enabled in `tauri.conf.json`.
-- Output: `%TEMP%\flow_last_recording.wav` (overwritten each time). The UI warns if the clip is almost silent.
+- Output: `%TEMP%\yapp_last_recording.wav` (overwritten each time). The UI warns if the clip is almost silent.
 - Verified: `cargo check` passes. Not run against a real mic (needs the human).
-- Test: close any running Flow window, run `npm run tauri dev`, hold the button, speak, release, click "Show recording in folder", play the WAV.
+- Test: close any running yapp window, run `npm run tauri dev`, hold the button, speak, release, click "Show recording in folder", play the WAV.
 
 ## M1 - Bare app + auto-built installer (verified by human)
-- Built: Tauri 2 skeleton (vanilla HTML/CSS frontend in `src/`, Rust in `src-tauri/`), window titled "Flow", placeholder icon (`app-icon.png` -> `src-tauri/icons/`), `.gitignore`, `README.md`, GitHub Actions workflow `.github/workflows/build.yml` (builds NSIS installer on push to `main`, uploads as artifact `flow-windows-installer`).
-- Verified: `npm run tauri build` succeeds locally and produces `src-tauri/target/release/bundle/nsis/Flow_0.1.0_x64-setup.exe`.
-- Test locally: `npm run tauri dev` -> a window titled "Flow" opens.
+- Built: Tauri 2 skeleton (vanilla HTML/CSS frontend in `src/`, Rust in `src-tauri/`), window titled "yapp", placeholder icon (`app-icon.png` -> `src-tauri/icons/`), `.gitignore`, `README.md`, GitHub Actions workflow `.github/workflows/build.yml` (builds NSIS installer on push to `main`, uploads as artifact `yapp-windows-installer`).
+- Verified: `npm run tauri build` succeeds locally and produces `src-tauri/target/release/bundle/nsis/yapp_0.1.0_x64-setup.exe`.
+- Test locally: `npm run tauri dev` -> a window titled "yapp" opens.
 - Human must: run it locally, then check the GitHub Actions run is green and the artifact downloads.

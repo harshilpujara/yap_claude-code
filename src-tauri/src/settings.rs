@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-const KEYRING_SERVICE: &str = "Flow";
+const KEYRING_SERVICE: &str = "yapp";
+// Names used before the app was renamed from "Flow" to "yapp".
+const LEGACY_KEYRING_SERVICE: &str = "Flow";
+const LEGACY_IDENTIFIER: &str = "com.flow.voice";
 
 // Defaults suggest Groq; any OpenAI-compatible service works.
 const DEFAULT_BASE_URL: &str = "https://api.groq.com/openai/v1";
@@ -102,6 +105,30 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join("settings.json"))
+}
+
+/// One-time move of data saved under the old "Flow" name: the settings file
+/// (its folder is named after the app identifier) and the API keys in Credential
+/// Manager. Only fills in what the new name does not have yet.
+pub fn migrate_legacy(app: &AppHandle) {
+    if let Ok(dir) = app.path().app_config_dir() {
+        let new_file = dir.join("settings.json");
+        let old_file = dir.with_file_name(LEGACY_IDENTIFIER).join("settings.json");
+        if !new_file.exists() && old_file.exists() {
+            let _ = std::fs::create_dir_all(&dir);
+            let _ = std::fs::copy(&old_file, &new_file);
+        }
+    }
+    for kind in [KeyKind::Stt, KeyKind::Llm] {
+        let Ok(old) = keyring::Entry::new(LEGACY_KEYRING_SERVICE, kind.user()) else { continue };
+        let Ok(secret) = old.get_password() else { continue };
+        if load_key(kind).is_none() && !secret.is_empty() {
+            if key_entry(kind).and_then(|e| e.set_password(&secret).map_err(|e| e.to_string())).is_err() {
+                continue;
+            }
+        }
+        let _ = old.delete_credential();
+    }
 }
 
 pub fn load_config(app: &AppHandle) -> Config {

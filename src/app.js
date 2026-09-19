@@ -18,9 +18,9 @@ function showState({ state, message }) {
   setStatus(message);
 }
 
-listen("flow://state", (e) => showState(e.payload));
+listen("yapp://state", (e) => showState(e.payload));
 
-listen("flow://result", (e) => {
+listen("yapp://result", (e) => {
   const r = e.payload;
   lastPath = r.recording_path;
   $("result").hidden = false;

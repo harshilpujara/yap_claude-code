@@ -1,4 +1,4 @@
-# EXECUTION PLAN — "Flow" (free Wispr-Flow-style Windows voice-to-text app)
+# EXECUTION PLAN — "yapp" (free Wispr-Flow-style Windows voice-to-text app)
 
 > **This file is your instruction set.** Read it fully before doing anything.
 > You (the AI coding agent) will build this project **milestone by milestone**,
@@ -94,7 +94,7 @@ Each milestone lists: **Goal / You build / Human does / Done when / Test.**
 - **Goal:** a real, empty Tauri window that launches — AND a GitHub Actions workflow
   that produces a downloadable Windows installer on every push. **Do the pipeline now,
   not at the end.**
-- **You build:** the Tauri 2 project skeleton; a minimal window titled "Flow"; a
+- **You build:** the Tauri 2 project skeleton; a minimal window titled "yapp"; a
   `.gitignore` (§6); a `README.md`; a GitHub Actions workflow (`.github/workflows/build.yml`)
   that builds the Windows app and uploads the installer as a build artifact.
 - **Human does:** run the app locally once; confirm a window opens. Push to GitHub;

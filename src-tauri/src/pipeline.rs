@@ -35,11 +35,11 @@ struct ResultPayload {
 }
 
 fn emit_state(app: &AppHandle, state: &'static str, message: impl Into<String>) {
-    let _ = app.emit("flow://state", StatePayload { state, message: message.into() });
+    let _ = app.emit("yapp://state", StatePayload { state, message: message.into() });
 }
 
 fn emit_result(app: &AppHandle, r: ResultPayload) {
-    let _ = app.emit("flow://result", r);
+    let _ = app.emit("yapp://result", r);
 }
 
 // ---------- Hotkey ----------

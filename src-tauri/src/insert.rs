@@ -135,16 +135,16 @@ mod tests {
     fn clipboard_is_restored_after_temporary_use() {
         let mut cb = Clipboard::new().unwrap();
         let users_own = backup_clipboard(&mut cb);
-        cb.set_text("flow-test-original").unwrap();
+        cb.set_text("yapp-test-original").unwrap();
         let mut seen = String::new();
-        let outcome = with_temporary_clipboard("flow-test-dictated", || {
+        let outcome = with_temporary_clipboard("yapp-test-dictated", || {
             seen = Clipboard::new().unwrap().get_text().unwrap();
             Ok(())
         });
         let after = cb.get_text().unwrap();
         restore_clipboard(&mut cb, users_own);
         outcome.unwrap();
-        assert_eq!(seen, "flow-test-dictated");
-        assert_eq!(after, "flow-test-original");
+        assert_eq!(seen, "yapp-test-dictated");
+        assert_eq!(after, "yapp-test-original");
     }
 }

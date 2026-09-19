@@ -25,7 +25,7 @@ pub async fn transcribe_last(app: AppHandle) -> Result<String, String> {
         .ok_or("No transcription API key saved yet. Paste your key in Settings and click Save.")?;
     let cfg = load_config(&app);
 
-    let wav_path = std::env::temp_dir().join("flow_last_recording.wav");
+    let wav_path = std::env::temp_dir().join("yapp_last_recording.wav");
     let bytes = std::fs::read(&wav_path).map_err(|_| "No recording found. Record something first.")?;
 
     let part = reqwest::multipart::Part::bytes(bytes)

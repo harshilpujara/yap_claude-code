@@ -29,6 +29,7 @@ fn main() {
         .manage(pipeline::PipelineState::default())
         .setup(|app| {
             let handle = app.handle().clone();
+            settings::migrate_legacy(&handle);
             let cfg = settings::load_config(&handle);
             if let Err(e) = pipeline::register_hotkey(&handle, &cfg.hotkey) {
                 pipeline::set_startup_hotkey_error(&handle, e);
@@ -45,5 +46,5 @@ fn main() {
             llm::cleanup_text
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Flow");
+        .expect("error while running yapp");
 }
