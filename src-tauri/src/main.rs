@@ -25,6 +25,7 @@ fn reveal_recording(path: String) -> Result<(), String> {
 }
 
 fn main() {
+    settings::migrate_legacy_keys();
     tauri::Builder::default()
         // A second launch (e.g. from the Start menu) just opens Settings in the running app.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| ui::show_settings(app)))

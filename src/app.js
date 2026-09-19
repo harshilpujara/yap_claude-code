@@ -163,4 +163,9 @@ $("test-run").addEventListener("click", async () => {
 });
 
 loadSettings().catch((e) => setStatus("error - " + e));
+// The window is hidden most of the time; re-read everything whenever it is brought up.
+window.addEventListener("focus", () => {
+  loadSettings().catch(() => {});
+  showHotkeyStatus().catch(() => {});
+});
 showHotkeyStatus().catch(() => {});

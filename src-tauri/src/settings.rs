@@ -111,10 +111,15 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("settings.json"))
 }
 
-/// One-time move of data saved under the old "Flow" name: the settings file
-/// (its folder is named after the app identifier) and the API keys in Credential
-/// Manager. Only fills in what the new name does not have yet.
+/// One-time move of data saved under the old "Flow" name. Only fills in what the
+/// new name does not have yet. Runs before any window exists so the Settings page
+/// can never load while it is half done.
 pub fn migrate_legacy(app: &AppHandle) {
+    migrate_legacy_settings_file(app);
+    migrate_legacy_keys();
+}
+
+fn migrate_legacy_settings_file(app: &AppHandle) {
     if let Ok(dir) = app.path().app_config_dir() {
         let new_file = dir.join("settings.json");
         let old_file = dir.with_file_name(LEGACY_IDENTIFIER).join("settings.json");
@@ -123,6 +128,10 @@ pub fn migrate_legacy(app: &AppHandle) {
             let _ = std::fs::copy(&old_file, &new_file);
         }
     }
+}
+
+/// Moves API keys from Credential Manager service "Flow" to "yapp" (same user names).
+pub fn migrate_legacy_keys() {
     for kind in [KeyKind::Stt, KeyKind::Llm] {
         let Ok(old) = keyring::Entry::new(LEGACY_KEYRING_SERVICE, kind.user()) else { continue };
         let Ok(secret) = old.get_password() else { continue };

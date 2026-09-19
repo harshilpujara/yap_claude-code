@@ -1,5 +1,10 @@
 # Progress
 
+## Fix: Settings said "No transcription key saved" while the key worked (post-rename)
+- Checked: Settings, transcription and cleanup all read the same Credential Manager entry (service "yapp", user `stt-api-key` / `llm-api-key`), and `migrate_legacy` writes to that same entry. The migrated key is present there (`stt-api-key.yapp`). So it was not a location mismatch.
+- Cause (most likely, not reproduced): the hidden Settings page loaded and asked for its state while the key migration in `setup` was still running, then kept the stale "no key" text; the pipeline reads the key fresh each time so it worked.
+- Fix: key migration now runs at the very start of `main()` (before any window exists); Settings also reloads itself every time the window is focused/opened.
+
 ## M9 - UX: tray + recording pill + settings on demand (built, awaiting human test)
 - Tray-only: no window opens on launch (unless no API key is saved yet, then Settings opens once to guide setup). Tray: left-click or "Settings" opens Settings, "Quit yapp" exits. Closing the Settings window only hides it. A second launch of yapp opens Settings in the running copy (single-instance).
 - Recording pill (`src/pill.*`, window "pill" in `tauri.conf.json`): small dark capsule at the bottom centre of the primary screen; shows on Ctrl+Space with a live waveform (mic loudness streamed from Rust as `yapp://level`, ~30/s), turns into an amber "Working" shimmer while transcribing/cleaning/inserting, hides when done. Errors show as a short message for ~4.5 s. It is non-focusable and click-through so the app you dictate into keeps focus. Colors/sizes are CSS variables at the top of `pill.css`.
