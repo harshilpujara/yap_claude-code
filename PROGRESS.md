@@ -9,6 +9,13 @@
 - UI shows raw transcript (before) and cleaned text (after), plus a "Test cleanup with typed text" box for trying the section 7 examples without speaking.
 - Verified: 9 unit tests pass. Not tested against the live LLM (needs the human's key).
 
+### Cleanup prompt: spoken formatting (human request, awaiting re-test)
+- `prompt.rs` now tells the model to decide by meaning whether spoken "new line / new paragraph / bullet point / full stop"-style phrases are formatting instructions (apply them: real line break, blank line, "- " list items, the punctuation mark; drop the spoken words) or literal content (keep as text, no formatting). Ambiguous means keep as text. Plain text only. Five new short examples, including two literal-use cases ("new line item", "new-line" CSS value, "full stop" as a topic). Safeguards unchanged.
+- Note: insertion of multi-line text is unchanged; line breaks reach the cursor via paste (or Shift+Enter in Type mode).
+
+### Type-mode truncation (OPEN, unverified)
+- Reported: Type mode stopped after "Again this is a test and ". Suspected cause (from enigo source): `text()` sends the whole string as one `SendInput` burst on Windows. A chunked-typing change (4 chars + 8 ms pause) is in the working tree in `insert.rs` but is NOT committed: a live comparison in Notepad was contaminated and inconclusive, so it is not confirmed as a fix.
+
 ## M7 - Insert text at the cursor (built, awaiting human check)
 - Built: `insert.rs`. Paste method: back up the clipboard (text or image), set the cleaned text (flagged so Windows clipboard history, cloud clipboard and monitors skip it), send Ctrl+V with `enigo` (`Key::V`, so it is keyboard-layout independent), wait ~450 ms, restore the old clipboard (cleared if it held something that can't be preserved, e.g. copied files). If pasting fails it falls back to typing; typing uses Shift+Enter for line breaks so chat apps don't send early. New `insert_method` setting: `paste` (default) / `type` / `off`. `pipeline.rs` inserts after a successful cleanup; if cleanup fails nothing is inserted; if inserting fails the text stays in the debug window with an error.
 - Verified: 15 unit tests pass, plus a real-clipboard backup/restore test (`cargo test -- --ignored`) that passed on this machine. Sending Ctrl+V into other apps was NOT tested (needs the human).
