@@ -155,10 +155,91 @@ $("test-run").addEventListener("click", async () => {
   }
 });
 
+// ---------- Tabs ----------
+function showTab(name) {
+  for (const t of ["settings", "insights"]) {
+    $("tab-" + t).hidden = t !== name;
+    $("tab-btn-" + t).classList.toggle("active", t === name);
+  }
+  try { localStorage.setItem("yapp-tab", name); } catch (_) {}
+  if (name === "insights") loadStats().catch(() => {});
+}
+document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+// ---------- Insights ----------
+const pad2 = (n) => String(n).padStart(2, "0");
+const dateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const fmtInt = (n) => Math.round(n).toLocaleString();
+
+function fmtDuration(seconds) {
+  const mins = Math.round(seconds / 60);
+  if (mins < 1) return "0m";
+  if (mins < 60) return mins + "m";
+  return Math.floor(mins / 60) + "h " + (mins % 60) + "m";
+}
+
+function renderHeatmap(days) {
+  const words = new Map(days.map((d) => [d.date, d.words]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const WEEKS = 27;
+  const start = new Date(today);
+  start.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7); // a Sunday
+  const max = Math.max(1, ...words.values());
+  const grid = $("heatmap");
+  grid.replaceChildren();
+  for (let i = 0; i < WEEKS * 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const cell = document.createElement("i");
+    if (d > today) {
+      cell.className = "cell future";
+    } else {
+      const w = words.get(dateKey(d)) || 0;
+      const level = w === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((w / max) * 4)));
+      cell.className = "cell l" + level;
+      cell.title = `${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}: ${fmtInt(w)} words`;
+    }
+    grid.appendChild(cell);
+  }
+}
+
+async function loadStats() {
+  const s = await invoke("get_stats");
+  $("insights-empty").hidden = s.dictations > 0;
+  $("st-words").textContent = fmtInt(s.total_words);
+  $("st-wpm").textContent = s.avg_wpm == null ? "\u2014" : fmtInt(s.avg_wpm);
+  $("st-count").textContent = fmtInt(s.dictations);
+  $("st-saved").textContent = s.dictations > 0 ? fmtDuration(s.time_saved_seconds) : "\u2014";
+  $("st-saved-note").textContent = `Compared with typing the same words at about ${s.typing_wpm} words per minute.`;
+  $("st-current").textContent = s.current_streak;
+  $("st-longest").textContent = s.longest_streak;
+  renderHeatmap(s.days);
+}
+
+let resetArmed = false;
+$("stats-reset").addEventListener("click", async () => {
+  if (!resetArmed) {
+    resetArmed = true;
+    $("stats-reset").textContent = "Click again to erase all stats";
+    setTimeout(() => { resetArmed = false; $("stats-reset").textContent = "Reset stats"; }, 4000);
+    return;
+  }
+  resetArmed = false;
+  $("stats-reset").textContent = "Reset stats";
+  await invoke("reset_stats").catch((e) => setStatus("error - " + e));
+});
+listen("yapp://stats", () => loadStats().catch(() => {}));
+
+let savedTab = "settings";
+try { savedTab = localStorage.getItem("yapp-tab") || "settings"; } catch (_) {}
+showTab(savedTab === "insights" ? "insights" : "settings");
+
 loadSettings().catch((e) => setStatus("error - " + e));
 // The window is hidden most of the time; re-read everything whenever it is brought up.
 window.addEventListener("focus", () => {
   loadSettings().catch(() => {});
   showHotkeyStatus().catch(() => {});
+  if (!$("tab-insights").hidden) loadStats().catch(() => {});
 });
 showHotkeyStatus().catch(() => {});

@@ -8,6 +8,7 @@ mod net;
 mod pipeline;
 mod prompt;
 mod settings;
+mod stats;
 mod stt;
 mod ui;
 
@@ -40,6 +41,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             pipeline::get_hotkey_status,
             settings::get_settings,
+            stats::get_stats,
+            stats::reset_stats,
             ui::get_autostart,
             ui::set_autostart,
             settings::save_settings,

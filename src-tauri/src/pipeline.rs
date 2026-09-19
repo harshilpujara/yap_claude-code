@@ -1,5 +1,5 @@
 use crate::audio::{self, Recorder};
-use crate::{insert, llm, settings, stt};
+use crate::{insert, llm, settings, stats, stt};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -260,12 +260,17 @@ async fn run_pipeline(app: &AppHandle, rec: Recorder) {
             }
             let method = settings::load_config(app).insert_method;
             if method == "off" {
+                stats::record(app, &clean, recorded.seconds);
                 return emit_state(app, "idle", format!("Done ({timing}; insertion is off in Settings)."));
             }
             emit_state(app, "processing", "Inserting at the cursor...");
+            let counted = clean.clone();
             let inserted = tauri::async_runtime::spawn_blocking(move || insert::insert(&clean, &method)).await;
             match inserted {
-                Ok(Ok(how)) => emit_state(app, "idle", format!("Done ({timing}); text {how} at the cursor.")),
+                Ok(Ok(how)) => {
+                    stats::record(app, &counted, recorded.seconds);
+                    emit_state(app, "idle", format!("Done ({timing}); text {how} at the cursor."));
+                }
                 Ok(Err(e)) => fail(app, format!("Inserting the text failed: {e}. The cleaned text is under Last dictation in Settings.")),
                 Err(_) => fail(app, "Inserting the text crashed unexpectedly."),
             }

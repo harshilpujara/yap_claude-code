@@ -5856,6 +5856,7 @@ name = "yapp"
 version = "0.1.0"
 dependencies = [
  "arboard",
+ "chrono",
  "cpal",
  "enigo",
  "hound",

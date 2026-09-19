@@ -1,5 +1,11 @@
 # Progress
 
+## Insights tab - local usage stats (built, awaiting human test)
+- New "Insights" tab next to "Settings" in the settings window (remembers the last tab). Cards: words dictated (hero), average words/min, dictations; estimated time saved (words at ~40 wpm typing minus audio time spoken); current + longest streak with a 27-week GitHub-style heatmap (5 green levels, relative to your busiest day; hover a square for the day's words). "Reset stats" (click twice) erases everything.
+- Storage: `stats.json` in the app config folder, per local day: words, dictations, audio seconds. Counts only, never text. Updated once per successful dictation (after insert succeeds, or when insertion is set to off); failed dictations count for nothing. No network, no accounts. Code: `src-tauri/src/stats.rs` (tested: word count, streak rules, wpm/time saved), hooks in `pipeline.rs`, UI in `index.html`/`app.js`.
+- Theme: `src/styles.css` now holds all colors as CSS variables at the top. Default = Palette 1 (sage/forest, cream #F7F6F1, teal-green #1F4E45) with a matching dark variant that follows the system setting; Palettes 2 (mono-green flat) and 3 (dark-first mint with glowing heatmap) are ready as commented blocks. The whole Settings page uses these tokens. The recording pill keeps its own dark style (`pill.css`).
+- Notes: WPM uses audio time sent to transcription (includes ~0.35 s padding and pauses), so it reads a little low. Streak days use the PC's local date. Previewed headlessly with fake data in light and dark; not yet run inside the real app. Debug build could not be relinked because yapp.exe was running (cargo check and 19 tests pass).
+
 ## M11 - Packaging + release pipeline (built, awaiting first real release)
 - Bundler: NSIS installer `yapp_<version>_x64-setup.exe`, product name/publisher "yapp", icon set, per-user install (no admin), English only. Verified locally with `npm run tauri build`.
 - Versioning: one number kept in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (+ lockfile). `npm run release -- X.Y.Z` (`scripts/release.mjs`) updates all, commits, and creates tag `vX.Y.Z`; it refuses on a dirty tree or an existing tag and never pushes.
