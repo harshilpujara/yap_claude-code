@@ -19,6 +19,7 @@ h2 { font-size: .95rem; margin: 1rem 0 0; }
 .indicator.error .dot { background: #dc2626; }
 .indicator.idle .dot { background: #16a34a; }
 @keyframes pulse { 50% { opacity: .35; } }
+select { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; margin-top: .2rem; }
 #hotkey { cursor: pointer; text-align: center; font-weight: 600; }
 .tester { margin: 1.25rem 0 0; }
 textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; margin-top: .2rem; resize: vertical; }

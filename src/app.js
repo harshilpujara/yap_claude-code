@@ -73,6 +73,7 @@ async function loadSettings() {
   const s = await invoke("get_settings");
   $("hotkey").value = s.hotkey;
   $("hotkey-label").textContent = s.hotkey;
+  $("insert-method").value = s.insert_method;
   $("stt-base-url").value = s.stt_base_url;
   $("stt-model").value = s.stt_model;
   $("stt-language").value = s.stt_language;
@@ -108,6 +109,7 @@ async function saveSettings({ sttKey = null, llmKey = null } = {}) {
         llm_model: $("llm-model").value,
         vocabulary: $("vocabulary").value,
         hotkey: $("hotkey").value,
+        insert_method: $("insert-method").value,
       },
       sttKey,
       llmKey,

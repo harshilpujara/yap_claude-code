@@ -1,5 +1,5 @@
 use crate::audio::Recorder;
-use crate::{llm, stt};
+use crate::{insert, llm, settings, stt};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -164,13 +164,22 @@ async fn run_pipeline(app: &AppHandle, rec: Recorder) {
     let t1 = Instant::now();
     match llm::cleanup_text(app.clone(), raw).await {
         Ok(clean) => {
-            result.clean = clean;
+            let timing = format!("transcribed {stt_secs:.1}s + cleaned {:.1}s", t1.elapsed().as_secs_f32());
+            result.clean = clean.clone();
             emit_result(app, result);
-            emit_state(
-                app,
-                "idle",
-                format!("Done (transcribed {stt_secs:.1}s + cleaned {:.1}s).", t1.elapsed().as_secs_f32()),
-            );
+
+            let method = settings::load_config(app).insert_method;
+            if clean.is_empty() || method == "off" {
+                let why = if clean.is_empty() { "nothing to insert" } else { "insertion is off in Settings" };
+                return emit_state(app, "idle", format!("Done ({timing}; {why})."));
+            }
+            emit_state(app, "processing", "Inserting at the cursor...");
+            let inserted = tauri::async_runtime::spawn_blocking(move || insert::insert(&clean, &method)).await;
+            match inserted {
+                Ok(Ok(how)) => emit_state(app, "idle", format!("Done ({timing}); text {how} at the cursor.")),
+                Ok(Err(e)) => emit_state(app, "error", format!("Cleaned text is above, but inserting it failed: {e}")),
+                Err(_) => emit_state(app, "error", "Inserting the text crashed unexpectedly."),
+            }
         }
         Err(e) => {
             result.cleanup_error = Some(e.clone());

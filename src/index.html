@@ -40,6 +40,15 @@
         </div>
         <p class="hint">Press once to start, again to stop. Use at least one of Ctrl / Alt / Shift with a key, or a function key like F9.</p>
 
+        <h2>Inserting text</h2>
+        <label>How the cleaned text reaches your cursor
+          <select id="insert-method">
+            <option value="paste">Paste (fast; your clipboard is restored afterwards)</option>
+            <option value="type">Type it key by key (slower; use if an app blocks pasting)</option>
+            <option value="off">Don't insert (only show it in this window)</option>
+          </select>
+        </label>
+
         <h2>Transcription (speech to text)</h2>
         <label>Service address
           <input id="stt-base-url" type="text" spellcheck="false" />

@@ -29,6 +29,8 @@ pub struct Config {
     pub vocabulary: String,
     /// Global toggle hotkey, e.g. "Ctrl+Space".
     pub hotkey: String,
+    /// How the final text reaches the cursor: "paste", "type", or "off" (show only).
+    pub insert_method: String,
 }
 
 impl Default for Config {
@@ -41,6 +43,7 @@ impl Default for Config {
             llm_model: DEFAULT_LLM_MODEL.into(),
             vocabulary: String::new(),
             hotkey: "Ctrl+Space".into(),
+            insert_method: "paste".into(),
         }
     }
 }
@@ -177,6 +180,9 @@ pub fn save_settings(
     c.hotkey = c.hotkey.trim().to_string();
     if c.hotkey.is_empty() {
         return Err("Please choose a hotkey.".into());
+    }
+    if !["paste", "type", "off"].contains(&c.insert_method.as_str()) {
+        return Err("Insert method must be paste, type or off.".into());
     }
     crate::pipeline::register_hotkey(&app, &c.hotkey)?;
 
