@@ -88,7 +88,7 @@ async function loadSettings() {
   $("llm-key-note").textContent = s.has_llm_key
     ? "A separate cleanup key is saved."
     : "No separate cleanup key. The transcription key is used if the service is the same.";
-  if (!s.has_stt_key) $("settings").open = true;
+  $("autostart").checked = await invoke("get_autostart");
 }
 
 async function showHotkeyStatus() {
@@ -137,6 +137,17 @@ $("save").addEventListener("click", () => {
 });
 $("clear-stt-key").addEventListener("click", () => saveSettings({ sttKey: "" }));
 $("clear-llm-key").addEventListener("click", () => saveSettings({ llmKey: "" }));
+
+$("autostart").addEventListener("change", async () => {
+  const box = $("autostart");
+  try {
+    await invoke("set_autostart", { enabled: box.checked });
+    setStatus(box.checked ? "yapp will start when you sign in" : "start on login turned off");
+  } catch (e) {
+    box.checked = !box.checked;
+    setStatus("error - " + e);
+  }
+});
 
 // ---------- Typed-text tester ----------
 $("test-run").addEventListener("click", async () => {

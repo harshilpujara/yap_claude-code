@@ -1,5 +1,14 @@
 # Progress
 
+## M9 - UX: tray + recording pill + settings on demand (built, awaiting human test)
+- Tray-only: no window opens on launch (unless no API key is saved yet, then Settings opens once to guide setup). Tray: left-click or "Settings" opens Settings, "Quit yapp" exits. Closing the Settings window only hides it. A second launch of yapp opens Settings in the running copy (single-instance).
+- Recording pill (`src/pill.*`, window "pill" in `tauri.conf.json`): small dark capsule at the bottom centre of the primary screen; shows on Ctrl+Space with a live waveform (mic loudness streamed from Rust as `yapp://level`, ~30/s), turns into an amber "Working" shimmer while transcribing/cleaning/inserting, hides when done. Errors show as a short message for ~4.5 s. It is non-focusable and click-through so the app you dictate into keeps focus. Colors/sizes are CSS variables at the top of `pill.css`.
+- Settings dashboard (`index.html`/`app.js`): the old debug window, now a plain settings page (API keys, models, language, vocabulary, hotkey, insert method, start on login) plus a small "Last dictation" box (handy if insertion fails) and the typed-text cleanup tester.
+- Start on login: checkbox in Settings (`tauri-plugin-autostart`, Windows registry Run key). In dev it registers the dev exe path; test it from the installed build.
+- Files: new `src-tauri/src/ui.rs`; changes in `audio.rs` (level meter), `pipeline.rs`, `main.rs`, `settings.rs`, `tauri.conf.json`, capabilities.
+- Verified: 16 unit tests pass, `cargo build` clean. Not run visually (needs the human).
+- Type-mode insertion bug and M8 remain parked.
+
 ## Rename Flow -> yapp (done)
 - Renamed everywhere: product name, window title, bundle identifier (`com.yapp.app`), Cargo/npm package names (binary is `yapp.exe`), UI copy, event names (`yapp://state`, `yapp://result`), temp file (`yapp_last_recording.wav`), CI artifact (`yapp-windows-installer`), README, docs.
 - Migration: on startup `settings::migrate_legacy` copies the old settings file (`%APPDATA%\com.flow.voice`) and moves the API keys from Credential Manager service "Flow" to "yapp". No need to re-enter keys. The old copies are removed once moved.

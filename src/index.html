@@ -9,7 +9,7 @@
   <body>
     <main>
       <h1>yapp</h1>
-      <p class="sub">Debug view (temporary)</p>
+      <p class="sub">Settings. yapp keeps running in the tray when you close this window.</p>
 
       <div id="indicator" class="indicator idle">
         <span class="dot"></span>
@@ -20,6 +20,7 @@
       <p id="status" class="status"></p>
 
       <div id="result" hidden>
+        <h2>Last dictation</h2>
         <p class="label">Raw transcript (before)</p>
         <p id="raw" class="transcript"></p>
         <p class="label">Cleaned (after)</p>
@@ -28,8 +29,9 @@
         <button id="reveal" type="button" class="secondary">Show recording in folder</button>
       </div>
 
-      <details id="settings">
-        <summary>Settings</summary>
+      <section id="settings">
+        <h2>General</h2>
+        <label class="check-row"><input id="autostart" type="checkbox" /> Start yapp when I sign in to Windows</label>
 
         <h2>Hotkey</h2>
         <label>Toggle recording (click the box, then press the keys you want)
@@ -45,7 +47,7 @@
           <select id="insert-method">
             <option value="paste">Paste (fast; your clipboard is restored afterwards)</option>
             <option value="type">Type it key by key (slower; use if an app blocks pasting)</option>
-            <option value="off">Don't insert (only show it in this window)</option>
+            <option value="off">Don't insert (only show it under Last dictation)</option>
           </select>
         </label>
 
@@ -90,7 +92,7 @@
         <p id="model-check" class="check" hidden></p>
         <p class="hint">If a model stops working, type a different name in its Model box and Save. Cleanup fallbacks: meta-llama/llama-4-scout-17b-16e-instruct or openai/gpt-oss-20b.</p>
         <p class="hint">Keys are stored in Windows Credential Manager on this PC, never in a file. Leave a key box empty to keep the saved key.</p>
-      </details>
+      </section>
 
       <details class="tester">
         <summary>Test cleanup with typed text (no microphone)</summary>

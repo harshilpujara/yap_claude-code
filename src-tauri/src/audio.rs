@@ -2,6 +2,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SampleFormat, SizedSample};
 use serde::Serialize;
 use std::sync::mpsc::{self, Sender};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
@@ -11,6 +12,8 @@ struct Captured {
 }
 
 pub struct Recorder {
+    /// Loudness of the latest audio chunk (0.0 - 1.0 as f32 bits), for the live waveform.
+    level: Arc<AtomicU32>,
     stop_tx: Sender<()>,
     handle: JoinHandle<Captured>,
 }
@@ -30,10 +33,12 @@ impl Recorder {
         let (stop_tx, stop_rx) = mpsc::channel::<()>();
         let (ready_tx, ready_rx) = mpsc::channel::<Result<(), String>>();
 
+        let level = Arc::new(AtomicU32::new(0));
+        let thread_level = level.clone();
         let handle = std::thread::spawn(move || {
             let buffer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
             let mut sample_rate = 0;
-            match open_stream(buffer.clone()) {
+            match open_stream(buffer.clone(), thread_level) {
                 Ok((stream, rate)) => {
                     sample_rate = rate;
                     let _ = ready_tx.send(Ok(()));
@@ -49,13 +54,18 @@ impl Recorder {
         });
 
         match ready_rx.recv() {
-            Ok(Ok(())) => Ok(Recorder { stop_tx, handle }),
+            Ok(Ok(())) => Ok(Recorder { level, stop_tx, handle }),
             Ok(Err(e)) => {
                 let _ = handle.join();
                 Err(e)
             }
             Err(_) => Err("Microphone thread failed to start.".into()),
         }
+    }
+
+    /// Current input loudness, roughly 0.0 (silence) to 1.0 (loud speech).
+    pub fn level(&self) -> f32 {
+        f32::from_bits(self.level.load(Ordering::Relaxed))
     }
 
     pub fn stop(self) -> Result<RecordingResult, String> {
@@ -71,7 +81,7 @@ impl Recorder {
     }
 }
 
-fn open_stream(buffer: Arc<Mutex<Vec<f32>>>) -> Result<(cpal::Stream, u32), String> {
+fn open_stream(buffer: Arc<Mutex<Vec<f32>>>, level: Arc<AtomicU32>) -> Result<(cpal::Stream, u32), String> {
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -86,10 +96,10 @@ fn open_stream(buffer: Arc<Mutex<Vec<f32>>>) -> Result<(cpal::Stream, u32), Stri
 
     let err_fn = |e| eprintln!("microphone stream error: {e}");
     let stream = match format {
-        SampleFormat::F32 => build::<f32>(&device, &stream_config, channels, buffer, err_fn),
-        SampleFormat::I16 => build::<i16>(&device, &stream_config, channels, buffer, err_fn),
-        SampleFormat::U16 => build::<u16>(&device, &stream_config, channels, buffer, err_fn),
-        SampleFormat::I32 => build::<i32>(&device, &stream_config, channels, buffer, err_fn),
+        SampleFormat::F32 => build::<f32>(&device, &stream_config, channels, buffer, level.clone(), err_fn),
+        SampleFormat::I16 => build::<i16>(&device, &stream_config, channels, buffer, level.clone(), err_fn),
+        SampleFormat::U16 => build::<u16>(&device, &stream_config, channels, buffer, level.clone(), err_fn),
+        SampleFormat::I32 => build::<i32>(&device, &stream_config, channels, buffer, level.clone(), err_fn),
         other => return Err(format!("Unsupported microphone format: {other:?}")),
     }?;
     stream.play().map_err(|e| {
@@ -103,6 +113,7 @@ fn build<T>(
     config: &cpal::StreamConfig,
     channels: usize,
     buffer: Arc<Mutex<Vec<f32>>>,
+    level: Arc<AtomicU32>,
     err_fn: impl FnMut(cpal::Error) + Send + 'static,
 ) -> Result<cpal::Stream, String>
 where
@@ -114,15 +125,26 @@ where
             *config,
             move |data: &[T], _| {
                 let mut buf = buffer.lock().unwrap();
+                let start = buf.len();
                 for frame in data.chunks(channels) {
                     let sum: f32 = frame.iter().map(|s| f32::from_sample(*s)).sum();
                     buf.push(sum / frame.len() as f32);
                 }
+                level.store(display_level(&buf[start..]).to_bits(), Ordering::Relaxed);
             },
             err_fn,
             None,
         )
         .map_err(|e| format!("Could not open the microphone: {e}"))
+}
+
+/// RMS loudness mapped to 0..1 on a curve that makes normal speech fill most of the range.
+fn display_level(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    let rms = (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
+    (rms * 6.0).sqrt().min(1.0)
 }
 
 /// Whisper models work at 16 kHz mono internally, so this loses nothing
@@ -212,6 +234,16 @@ fn write_wav(c: &Captured) -> Result<RecordingResult, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn display_level_is_bounded_and_monotonic() {
+        assert_eq!(super::display_level(&[]), 0.0);
+        assert_eq!(super::display_level(&[0.0; 100]), 0.0);
+        let quiet = super::display_level(&[0.01; 100]);
+        let loud = super::display_level(&[0.2; 100]);
+        assert!(quiet > 0.0 && quiet < loud && loud <= 1.0);
+        assert_eq!(super::display_level(&[1.0; 100]), 1.0);
+    }
+
     use super::*;
 
     #[test]

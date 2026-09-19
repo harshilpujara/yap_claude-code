@@ -7,7 +7,13 @@
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "title": "yapp", "width": 560, "height": 780, "resizable": true }
+      { "label": "main", "title": "yapp", "width": 560, "height": 780, "resizable": true, "visible": false },
+      {
+        "label": "pill", "url": "pill.html", "title": "yapp recording",
+        "width": 300, "height": 64, "resizable": false, "decorations": false, "transparent": true,
+        "shadow": false, "alwaysOnTop": true, "skipTaskbar": true, "focus": false, "focusable": false,
+        "visible": false, "maximizable": false, "minimizable": false
+      }
     ],
     "security": { "csp": null }
   },

@@ -85,6 +85,10 @@ pub fn load_key(kind: KeyKind) -> Option<String> {
     key_entry(kind).ok()?.get_password().ok().filter(|k| !k.is_empty())
 }
 
+pub fn has_any_key() -> bool {
+    load_key(KeyKind::Stt).is_some() || load_key(KeyKind::Llm).is_some()
+}
+
 fn host_of(url: &str) -> &str {
     url.split("://").nth(1).unwrap_or(url).split('/').next().unwrap_or("")
 }

@@ -1,7 +1,7 @@
 use crate::audio::Recorder;
 use crate::{insert, llm, settings, stt};
 use serde::Serialize;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager};
@@ -11,6 +11,8 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 pub struct PipelineState {
     recorder: Mutex<Option<Recorder>>,
     processing: AtomicBool,
+    /// Bumped on every pill change so a delayed hide never hides a newer pill.
+    pub pill_generation: AtomicU64,
     /// True between a hotkey press and its release; Windows repeats presses while keys are held.
     key_down: AtomicBool,
     hotkey: Mutex<Option<Shortcut>>,
@@ -35,7 +37,9 @@ struct ResultPayload {
 }
 
 fn emit_state(app: &AppHandle, state: &'static str, message: impl Into<String>) {
-    let _ = app.emit("yapp://state", StatePayload { state, message: message.into() });
+    let message = message.into();
+    crate::ui::sync_pill(app, state);
+    let _ = app.emit("yapp://state", StatePayload { state, message });
 }
 
 fn emit_result(app: &AppHandle, r: ResultPayload) {
@@ -118,6 +122,7 @@ async fn toggle(app: AppHandle) {
                     *slot = Some(rec);
                 }
                 emit_state(&app, "recording", "Recording... press the hotkey again to stop.");
+                stream_levels(app.clone());
             }
             Err(e) => emit_state(&app, "error", e),
         },
@@ -127,6 +132,23 @@ async fn toggle(app: AppHandle) {
             st.processing.store(false, Ordering::SeqCst);
         }
     }
+}
+
+/// While a recording is open, sends its loudness ~30 times a second for the pill's waveform.
+fn stream_levels(app: AppHandle) {
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(33));
+        let level = match app.state::<PipelineState>().recorder.lock() {
+            Ok(slot) => slot.as_ref().map(|r| r.level()),
+            Err(_) => None,
+        };
+        match level {
+            Some(l) => {
+                let _ = app.emit("yapp://level", l);
+            }
+            None => break,
+        }
+    });
 }
 
 async fn run_pipeline(app: &AppHandle, rec: Recorder) {
