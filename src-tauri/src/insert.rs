@@ -79,55 +79,20 @@ fn paste(text: &str) -> Result<(), String> {
     with_temporary_clipboard(text, press_ctrl_v)
 }
 
-fn lines(text: &str) -> Vec<&str> {
-    text.split('\n').map(|l| l.trim_end_matches('\r')).collect()
-}
-
-/// Types the text key by key. Line breaks use Shift+Enter so chat apps
-/// don't send the message halfway through.
-fn type_text(text: &str) -> Result<(), String> {
-    let mut enigo = new_enigo()?;
-    let err = |e| format!("Could not type the text: {e}");
-    for (i, line) in lines(text).into_iter().enumerate() {
-        if i > 0 {
-            enigo.key(Key::Shift, Direction::Press).map_err(err)?;
-            let click = enigo.key(Key::Return, Direction::Click);
-            let release = enigo.key(Key::Shift, Direction::Release);
-            click.map_err(err)?;
-            release.map_err(err)?;
-        }
-        if !line.is_empty() {
-            enigo.text(line).map_err(err)?;
-        }
-    }
-    Ok(())
-}
-
-/// Inserts `text` at the cursor of the focused app. `method` is "paste" or "type".
+/// Inserts `text` at the cursor of the focused app by pasting it. `method` is "paste".
+/// There is deliberately no key-by-key typing: it was unreliable in some apps (it could
+/// cut text off), and quietly falling back to it could insert garbled text. If pasting
+/// fails, the caller shows an error and nothing is inserted.
 /// Returns a short description of what happened.
-pub fn insert(text: &str, method: &str) -> Result<String, String> {
-    if method == "type" {
-        type_text(text)?;
-        return Ok("typed".into());
-    }
-    match paste(text) {
-        Ok(()) => Ok("pasted".into()),
-        Err(paste_err) => match type_text(text) {
-            Ok(()) => Ok(format!("typed (paste failed: {paste_err})")),
-            Err(type_err) => Err(format!("{paste_err} Typing also failed: {type_err}")),
-        },
-    }
+pub fn insert(text: &str, _method: &str) -> Result<String, String> {
+    paste(text)
+        .map(|()| "pasted".to_string())
+        .map_err(|e| format!("Pasting failed: {e}"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn lines_split_and_drop_carriage_returns() {
-        assert_eq!(lines("a\r\nb\n\nc"), vec!["a", "b", "", "c"]);
-        assert_eq!(lines("single"), vec!["single"]);
-    }
 
     // Touches the real clipboard (restores it afterwards); run with `cargo test -- --ignored`.
     #[test]

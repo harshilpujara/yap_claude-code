@@ -32,7 +32,8 @@ pub struct Config {
     pub vocabulary: String,
     /// Global toggle hotkey, e.g. "Ctrl+Space".
     pub hotkey: String,
-    /// How the final text reaches the cursor: "paste", "type", or "off" (show only).
+    /// How the final text reaches the cursor: "paste" or "off" (show only).
+    /// ("type" was removed - see PROGRESS.md; a saved "type" is treated as "paste".)
     pub insert_method: String,
 }
 
@@ -150,6 +151,9 @@ pub fn load_config(app: &AppHandle) -> Config {
         .and_then(|p| std::fs::read_to_string(p).ok())
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default();
+    if c.insert_method == "type" {
+        c.insert_method = "paste".into();
+    }
     if RETIRED_LLM_MODELS.contains(&c.llm_model.as_str()) {
         c.llm_model = DEFAULT_LLM_MODEL.into();
     }
@@ -221,8 +225,8 @@ pub fn save_settings(
     if c.hotkey.is_empty() {
         return Err("Please choose a hotkey.".into());
     }
-    if !["paste", "type", "off"].contains(&c.insert_method.as_str()) {
-        return Err("Insert method must be paste, type or off.".into());
+    if !["paste", "off"].contains(&c.insert_method.as_str()) {
+        return Err("Insert method must be paste or off.".into());
     }
     crate::pipeline::register_hotkey(&app, &c.hotkey)?;
 
