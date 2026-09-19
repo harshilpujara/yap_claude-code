@@ -1,0 +1,23 @@
+# Build output
+/target
+/src-tauri/target
+/src-tauri/gen
+dist
+node_modules
+
+# Secrets / local config
+.env
+.env.*
+*.local
+*.key
+secrets.*
+
+# Temp audio
+*.wav
+*.tmp
+temp_audio/
+
+# OS junk
+Thumbs.db
+.DS_Store
+desktop.ini
