@@ -9,6 +9,10 @@ button.secondary { background: transparent; color: inherit; border: 1px solid cu
 details { text-align: left; margin: 0 0 1.25rem; padding: .6rem .9rem; border: 1px solid #8884; border-radius: .6rem; }
 summary { cursor: pointer; font-size: .9rem; }
 label { display: block; font-size: .85rem; margin-top: .6rem; }
+h2 { font-size: .95rem; margin: 1rem 0 0; }
+.tester { margin: 1.25rem 0 0; }
+textarea { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; margin-top: .2rem; resize: vertical; }
+.row { flex-wrap: wrap; }
 input { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; margin-top: .2rem; }
 .row { display: flex; gap: .5rem; margin-top: .6rem; }
 .hint { font-size: .8rem; opacity: .65; margin: .4rem 0 0; }

@@ -7,7 +7,7 @@
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "title": "Flow", "width": 480, "height": 320, "resizable": true }
+      { "title": "Flow", "width": 560, "height": 780, "resizable": true }
     ],
     "security": { "csp": null }
   },

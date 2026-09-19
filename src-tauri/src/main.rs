@@ -1,6 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod audio;
+mod llm;
+mod net;
+mod prompt;
+mod settings;
 mod stt;
 
 use audio::{Recorder, RecordingResult};
@@ -52,9 +56,10 @@ fn main() {
             start_recording,
             stop_recording,
             reveal_recording,
-            stt::get_stt_settings,
-            stt::save_stt_settings,
-            stt::transcribe_last
+            settings::get_settings,
+            settings::save_settings,
+            stt::transcribe_last,
+            llm::cleanup_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running Flow");

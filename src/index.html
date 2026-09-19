@@ -9,36 +9,75 @@
   <body>
     <main>
       <h1>Flow</h1>
-      <p class="sub">Transcription test (temporary)</p>
+      <p class="sub">Cleanup test (temporary)</p>
 
       <details id="settings">
-        <summary>Settings: transcription service</summary>
+        <summary>Settings</summary>
+
+        <h2>Transcription (speech to text)</h2>
         <label>Service address
-          <input id="base-url" type="text" spellcheck="false" />
+          <input id="stt-base-url" type="text" spellcheck="false" />
         </label>
         <label>Model
-          <input id="model" type="text" spellcheck="false" />
+          <input id="stt-model" type="text" spellcheck="false" />
+        </label>
+        <label>Language (e.g. en, hi, es - or "auto" to detect)
+          <input id="stt-language" type="text" spellcheck="false" />
         </label>
         <label>API key
-          <input id="api-key" type="password" autocomplete="off" spellcheck="false" />
+          <input id="stt-key" type="password" autocomplete="off" spellcheck="false" />
         </label>
-        <p id="key-note" class="hint"></p>
+        <p id="stt-key-note" class="hint"></p>
+
+        <h2>Cleanup (AI rewrite)</h2>
+        <label>Service address
+          <input id="llm-base-url" type="text" spellcheck="false" />
+        </label>
+        <label>Model
+          <input id="llm-model" type="text" spellcheck="false" />
+        </label>
+        <label>API key (optional if it is the same service as above)
+          <input id="llm-key" type="password" autocomplete="off" spellcheck="false" />
+        </label>
+        <p id="llm-key-note" class="hint"></p>
+
+        <h2>Vocabulary</h2>
+        <label>Names and uncommon words (comma or new line separated)
+          <textarea id="vocabulary" rows="3" spellcheck="false" placeholder="Harshil, latte, Kubernetes"></textarea>
+        </label>
+        <p class="hint">Used for both transcription and cleanup so these are spelled correctly.</p>
+
         <div class="row">
           <button id="save" type="button" class="secondary">Save</button>
-          <button id="clear-key" type="button" class="secondary">Remove saved key</button>
+          <button id="clear-stt-key" type="button" class="secondary">Remove transcription key</button>
+          <button id="clear-llm-key" type="button" class="secondary">Remove cleanup key</button>
         </div>
-        <p class="hint">Your key is stored in Windows Credential Manager on this PC, never in a file.</p>
+        <p class="hint">Keys are stored in Windows Credential Manager on this PC, never in a file. Leave a key box empty to keep the saved key.</p>
       </details>
 
       <button id="record" type="button">Hold to record</button>
       <p id="status" class="status">Status: idle</p>
 
       <div id="result" hidden>
-        <p class="label">Transcript</p>
-        <p id="transcript" class="transcript"></p>
+        <p class="label">Raw transcript (before)</p>
+        <p id="raw" class="transcript"></p>
+        <p class="label">Cleaned (after)</p>
+        <p id="clean" class="transcript"></p>
         <p id="info" class="hint"></p>
         <button id="reveal" type="button" class="secondary">Show recording in folder</button>
       </div>
+
+      <details class="tester">
+        <summary>Test cleanup with typed text (no microphone)</summary>
+        <label>Paste a messy transcript
+          <textarea id="test-input" rows="4" spellcheck="false"></textarea>
+        </label>
+        <div class="row">
+          <button id="test-run" type="button" class="secondary">Clean this text</button>
+        </div>
+        <p class="label">Result</p>
+        <p id="test-output" class="transcript"></p>
+      </details>
     </main>
     <script src="app.js"></script>
   </body>

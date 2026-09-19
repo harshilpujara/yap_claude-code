@@ -1,19 +1,8 @@
 const { invoke } = window.__TAURI__.core;
+const $ = (id) => document.getElementById(id);
 
-const recordBtn = document.getElementById("record");
-const statusEl = document.getElementById("status");
-const resultEl = document.getElementById("result");
-const infoEl = document.getElementById("info");
-const transcriptEl = document.getElementById("transcript");
-const revealBtn = document.getElementById("reveal");
-const settingsEl = document.getElementById("settings");
-const baseUrlEl = document.getElementById("base-url");
-const modelEl = document.getElementById("model");
-const apiKeyEl = document.getElementById("api-key");
-const keyNoteEl = document.getElementById("key-note");
-const saveBtn = document.getElementById("save");
-const clearKeyBtn = document.getElementById("clear-key");
-
+const recordBtn = $("record");
+const statusEl = $("status");
 let recording = false;
 let lastPath = null;
 
@@ -21,24 +10,39 @@ function setStatus(text) {
   statusEl.textContent = "Status: " + text;
 }
 
+// ---------- Settings ----------
 async function loadSettings() {
-  const s = await invoke("get_stt_settings");
-  baseUrlEl.value = s.base_url;
-  modelEl.value = s.model;
-  apiKeyEl.value = "";
-  keyNoteEl.textContent = s.has_key
-    ? "A key is saved. Leave the box empty to keep it."
-    : "No key saved yet. Paste your Groq API key above.";
-  if (!s.has_key) settingsEl.open = true;
-  return s;
+  const s = await invoke("get_settings");
+  $("stt-base-url").value = s.stt_base_url;
+  $("stt-model").value = s.stt_model;
+  $("stt-language").value = s.stt_language;
+  $("llm-base-url").value = s.llm_base_url;
+  $("llm-model").value = s.llm_model;
+  $("vocabulary").value = s.vocabulary;
+  $("stt-key").value = "";
+  $("llm-key").value = "";
+  $("stt-key-note").textContent = s.has_stt_key
+    ? "A transcription key is saved."
+    : "No transcription key saved yet.";
+  $("llm-key-note").textContent = s.has_llm_key
+    ? "A separate cleanup key is saved."
+    : "No separate cleanup key. The transcription key is used if the service is the same.";
+  if (!s.has_stt_key) $("settings").open = true;
 }
 
-async function saveSettings(apiKey) {
+async function saveSettings({ sttKey = null, llmKey = null } = {}) {
   try {
-    await invoke("save_stt_settings", {
-      baseUrl: baseUrlEl.value,
-      model: modelEl.value,
-      apiKey,
+    await invoke("save_settings", {
+      config: {
+        stt_base_url: $("stt-base-url").value,
+        stt_model: $("stt-model").value,
+        stt_language: $("stt-language").value,
+        llm_base_url: $("llm-base-url").value,
+        llm_model: $("llm-model").value,
+        vocabulary: $("vocabulary").value,
+      },
+      sttKey,
+      llmKey,
     });
     await loadSettings();
     setStatus("settings saved");
@@ -47,12 +51,15 @@ async function saveSettings(apiKey) {
   }
 }
 
-saveBtn.addEventListener("click", () => {
-  const k = apiKeyEl.value.trim();
-  saveSettings(k === "" ? null : k);
+$("save").addEventListener("click", () => {
+  const s = $("stt-key").value.trim();
+  const l = $("llm-key").value.trim();
+  saveSettings({ sttKey: s === "" ? null : s, llmKey: l === "" ? null : l });
 });
-clearKeyBtn.addEventListener("click", () => saveSettings(""));
+$("clear-stt-key").addEventListener("click", () => saveSettings({ sttKey: "" }));
+$("clear-llm-key").addEventListener("click", () => saveSettings({ llmKey: "" }));
 
+// ---------- Recording pipeline ----------
 async function start() {
   if (recording) return;
   recording = true;
@@ -84,19 +91,36 @@ async function stop() {
   }
   lastPath = r.path;
   const quiet = r.peak < 0.01 ? " WARNING: almost silent - check your microphone." : "";
-  infoEl.textContent = `Recorded ${r.original_seconds.toFixed(1)}s, sent ${r.seconds.toFixed(1)}s after trimming silence.${quiet}`;
-  resultEl.hidden = false;
-  transcriptEl.textContent = "";
+  $("info").textContent = `Recorded ${r.original_seconds.toFixed(1)}s, sent ${r.seconds.toFixed(1)}s after trimming silence.${quiet}`;
+  $("result").hidden = false;
+  $("raw").textContent = "";
+  $("clean").textContent = "";
 
   setStatus("transcribing...");
   const t0 = performance.now();
+  let raw;
   try {
-    const text = await invoke("transcribe_last");
-    const secs = ((performance.now() - t0) / 1000).toFixed(1);
-    transcriptEl.textContent = text || "(no speech detected)";
-    setStatus(`done (transcribed in ${secs}s)`);
+    raw = await invoke("transcribe_last");
   } catch (e) {
     setStatus("error - " + e);
+    return;
+  }
+  const sttSecs = ((performance.now() - t0) / 1000).toFixed(1);
+  $("raw").textContent = raw || "(no speech detected)";
+  if (!raw) {
+    setStatus(`done (transcribed in ${sttSecs}s, nothing to clean)`);
+    return;
+  }
+
+  setStatus("cleaning up...");
+  const t1 = performance.now();
+  try {
+    const clean = await invoke("cleanup_text", { raw });
+    const llmSecs = ((performance.now() - t1) / 1000).toFixed(1);
+    $("clean").textContent = clean || "(empty result)";
+    setStatus(`done (transcribed ${sttSecs}s + cleaned ${llmSecs}s)`);
+  } catch (e) {
+    setStatus("cleanup error - " + e);
   }
 }
 
@@ -107,8 +131,21 @@ recordBtn.addEventListener("pointerdown", (e) => {
 recordBtn.addEventListener("pointerup", stop);
 recordBtn.addEventListener("pointercancel", stop);
 
-revealBtn.addEventListener("click", () => {
+$("reveal").addEventListener("click", () => {
   if (lastPath) invoke("reveal_recording", { path: lastPath }).catch((e) => setStatus("error - " + e));
+});
+
+// ---------- Typed-text tester ----------
+$("test-run").addEventListener("click", async () => {
+  const raw = $("test-input").value;
+  $("test-output").textContent = "";
+  setStatus("cleaning up...");
+  try {
+    $("test-output").textContent = await invoke("cleanup_text", { raw });
+    setStatus("done");
+  } catch (e) {
+    setStatus("cleanup error - " + e);
+  }
 });
 
 loadSettings().catch((e) => setStatus("error - " + e));
