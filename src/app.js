@@ -84,7 +84,7 @@ async function stop() {
   }
   lastPath = r.path;
   const quiet = r.peak < 0.01 ? " WARNING: almost silent - check your microphone." : "";
-  infoEl.textContent = `Recorded ${r.seconds.toFixed(1)}s.${quiet}`;
+  infoEl.textContent = `Recorded ${r.original_seconds.toFixed(1)}s, sent ${r.seconds.toFixed(1)}s after trimming silence.${quiet}`;
   resultEl.hidden = false;
   transcriptEl.textContent = "";
 
