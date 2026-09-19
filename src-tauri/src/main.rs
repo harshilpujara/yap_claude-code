@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod audio;
+mod stt;
 
 use audio::{Recorder, RecordingResult};
 use std::sync::Mutex;
@@ -50,7 +51,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             start_recording,
             stop_recording,
-            reveal_recording
+            reveal_recording,
+            stt::get_stt_settings,
+            stt::save_stt_settings,
+            stt::transcribe_last
         ])
         .run(tauri::generate_context!())
         .expect("error while running Flow");

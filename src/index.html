@@ -9,11 +9,34 @@
   <body>
     <main>
       <h1>Flow</h1>
-      <p class="sub">Microphone test (temporary)</p>
+      <p class="sub">Transcription test (temporary)</p>
+
+      <details id="settings">
+        <summary>Settings: transcription service</summary>
+        <label>Service address
+          <input id="base-url" type="text" spellcheck="false" />
+        </label>
+        <label>Model
+          <input id="model" type="text" spellcheck="false" />
+        </label>
+        <label>API key
+          <input id="api-key" type="password" autocomplete="off" spellcheck="false" />
+        </label>
+        <p id="key-note" class="hint"></p>
+        <div class="row">
+          <button id="save" type="button" class="secondary">Save</button>
+          <button id="clear-key" type="button" class="secondary">Remove saved key</button>
+        </div>
+        <p class="hint">Your key is stored in Windows Credential Manager on this PC, never in a file.</p>
+      </details>
+
       <button id="record" type="button">Hold to record</button>
       <p id="status" class="status">Status: idle</p>
+
       <div id="result" hidden>
-        <p id="info"></p>
+        <p class="label">Transcript</p>
+        <p id="transcript" class="transcript"></p>
+        <p id="info" class="hint"></p>
         <button id="reveal" type="button" class="secondary">Show recording in folder</button>
       </div>
     </main>
