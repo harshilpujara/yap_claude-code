@@ -7,7 +7,9 @@ const KEYRING_SERVICE: &str = "Flow";
 // Defaults suggest Groq; any OpenAI-compatible service works.
 const DEFAULT_BASE_URL: &str = "https://api.groq.com/openai/v1";
 const DEFAULT_STT_MODEL: &str = "whisper-large-v3-turbo";
-const DEFAULT_LLM_MODEL: &str = "llama-3.3-70b-versatile";
+const DEFAULT_LLM_MODEL: &str = "openai/gpt-oss-120b";
+// Model ids we previously defaulted to that the service has since shut down.
+const RETIRED_LLM_MODELS: &[&str] = &["llama-3.3-70b-versatile"];
 const MAX_VOCAB_CHARS: usize = 1000;
 
 /// Non-secret settings, stored as JSON in the app config folder.
@@ -97,11 +99,15 @@ fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 pub fn load_config(app: &AppHandle) -> Config {
-    config_path(app)
+    let mut c: Config = config_path(app)
         .ok()
         .and_then(|p| std::fs::read_to_string(p).ok())
         .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    if RETIRED_LLM_MODELS.contains(&c.llm_model.as_str()) {
+        c.llm_model = DEFAULT_LLM_MODEL.into();
+    }
+    c
 }
 
 #[derive(Serialize)]
@@ -190,6 +196,11 @@ mod tests {
     fn vocabulary_splits_on_commas_and_lines() {
         let c = Config { vocabulary: "Harshil, latte\nSarah,, ".into(), ..Config::default() };
         assert_eq!(c.vocabulary_list(), vec!["Harshil", "latte", "Sarah"]);
+    }
+
+    #[test]
+    fn default_llm_model_is_not_retired() {
+        assert!(!RETIRED_LLM_MODELS.contains(&DEFAULT_LLM_MODEL));
     }
 
     #[test]

@@ -45,7 +45,15 @@ async function saveSettings({ sttKey = null, llmKey = null } = {}) {
       llmKey,
     });
     await loadSettings();
-    setStatus("settings saved");
+    setStatus("settings saved - checking models...");
+    const check = await invoke("check_models");
+    const box = $("model-check");
+    box.hidden = false;
+    box.classList.toggle("bad", check.warnings.length > 0);
+    box.textContent = check.warnings.length
+      ? check.warnings.join("\n\n")
+      : "Both models were found on the service. All good.";
+    setStatus(check.warnings.length ? "settings saved - see model warnings" : "settings saved and verified");
   } catch (e) {
     setStatus("error - " + e);
   }

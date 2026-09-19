@@ -2,6 +2,7 @@
 
 mod audio;
 mod llm;
+mod models;
 mod net;
 mod prompt;
 mod settings;
@@ -58,6 +59,7 @@ fn main() {
             reveal_recording,
             settings::get_settings,
             settings::save_settings,
+            models::check_models,
             stt::transcribe_last,
             llm::cleanup_text
         ])
