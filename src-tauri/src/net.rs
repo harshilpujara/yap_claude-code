@@ -2,7 +2,8 @@ use std::time::Duration;
 
 pub fn client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(90))
         .build()
         .map_err(|e| e.to_string())
 }
@@ -26,6 +27,7 @@ pub async fn status_error(resp: reqwest::Response) -> String {
         404 => "Service address or model not found. Check the settings.",
         413 => "The request is too large for the service.",
         429 => "Rate limit reached. Wait a moment and try again.",
+        500..=599 => "The service returned an error (its servers may be having trouble). Try again in a moment.",
         _ => "The service returned an error.",
     };
     let detail: String = body.chars().take(300).collect();

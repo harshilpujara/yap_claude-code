@@ -82,13 +82,14 @@ pub fn sync_pill(app: &AppHandle, state: &str) {
     let Some(w) = app.get_webview_window(PILL) else { return };
     let st = app.state::<PipelineState>();
     let generation = st.pill_generation.fetch_add(1, Ordering::SeqCst) + 1;
+    if state != "idle" {
+        place_pill(&w);
+        let _ = w.show();
+    }
     match state {
-        "recording" | "processing" => {
-            place_pill(&w);
-            let _ = w.show();
-        }
+        "recording" | "processing" => {}
         _ => {
-            let linger = if state == "error" { Duration::from_millis(4500) } else { Duration::from_millis(250) };
+            let linger = if state == "error" { Duration::from_millis(5500) } else { Duration::from_millis(250) };
             let app = app.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(linger);

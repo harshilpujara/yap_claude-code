@@ -26,10 +26,12 @@ body { display: grid; place-items: center; }
 .pill.processing .label { display: block; }
 
 /* Problem: show a short message instead of the waveform. */
-.pill.error { height: 52px; border-radius: 26px; }
+.pill.error { height: 54px; border-radius: 27px; }
+.pill.error { border: 1px solid rgba(239, 68, 68, .6); }
 .pill.error .dot { animation: none; }
+.pill.error .label b { display: block; color: var(--recording); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
 .pill.error .wave { display: none; }
-.pill.error .label { display: block; flex: 1; font-weight: 500; font-size: 12px; line-height: 1.25; max-height: 30px; overflow: hidden; }
+.pill.error .label { display: block; flex: 1; font-weight: 500; font-size: 12px; line-height: 1.25; max-height: 34px; overflow: hidden; }
 
 @keyframes pulse { 50% { opacity: .35; } }
 @keyframes shimmer { 50% { height: 16px; opacity: 1; } }

@@ -26,7 +26,7 @@
         <p class="label">Cleaned (after)</p>
         <p id="clean" class="transcript"></p>
         <p id="info" class="hint"></p>
-        <button id="reveal" type="button" class="secondary">Show recording in folder</button>
+        <p class="hint">Kept in memory only - it disappears when you quit yapp.</p>
       </div>
 
       <section id="settings">
@@ -83,6 +83,10 @@
           <textarea id="vocabulary" rows="3" spellcheck="false" placeholder="Harshil, latte, Kubernetes"></textarea>
         </label>
         <p class="hint">Used for both transcription and cleanup so these are spelled correctly.</p>
+
+        <h2>Privacy</h2>
+        <p class="hint">What leaves this PC: only the audio of each recording and its transcript, sent to the transcription and cleanup services above using your own keys. Nothing else is sent anywhere - no analytics, no telemetry, no crash reports.</p>
+        <p class="hint">What stays here: your keys (Windows Credential Manager) and these settings. Each recording is deleted from disk the moment it has been sent. yapp keeps no history and writes no transcripts to any log.</p>
 
         <div class="row">
           <button id="save" type="button" class="secondary">Save</button>

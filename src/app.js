@@ -2,8 +2,6 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const $ = (id) => document.getElementById(id);
 
-let lastPath = null;
-
 function setStatus(text) {
   $("status").textContent = text;
 }
@@ -22,15 +20,10 @@ listen("yapp://state", (e) => showState(e.payload));
 
 listen("yapp://result", (e) => {
   const r = e.payload;
-  lastPath = r.recording_path;
   $("result").hidden = false;
   $("raw").textContent = r.raw || "(no speech detected)";
   $("clean").textContent = r.cleanup_error ? "(cleanup failed - see status above)" : r.clean;
   $("info").textContent = r.info;
-});
-
-$("reveal").addEventListener("click", () => {
-  if (lastPath) invoke("reveal_recording", { path: lastPath }).catch((e) => setStatus("error - " + e));
 });
 
 // ---------- Hotkey capture ----------

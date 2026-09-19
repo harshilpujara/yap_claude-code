@@ -11,21 +11,10 @@ mod settings;
 mod stt;
 mod ui;
 
-#[tauri::command]
-fn reveal_recording(path: String) -> Result<(), String> {
-    let temp = std::env::temp_dir();
-    if !std::path::Path::new(&path).starts_with(&temp) {
-        return Err("Refusing to open a file outside the temp folder.".into());
-    }
-    std::process::Command::new("explorer")
-        .arg(format!("/select,{}", path))
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 fn main() {
     settings::migrate_legacy_keys();
+    // Privacy: never leave audio behind, even after a crash.
+    audio::delete_last_recording();
     tauri::Builder::default()
         // A second launch (e.g. from the Start menu) just opens Settings in the running app.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| ui::show_settings(app)))
@@ -49,7 +38,6 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            reveal_recording,
             pipeline::get_hotkey_status,
             settings::get_settings,
             ui::get_autostart,

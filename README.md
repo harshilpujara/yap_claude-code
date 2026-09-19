@@ -8,7 +8,7 @@ Free voice-to-text for Windows. Hold a hotkey, talk, release, and clean text app
 The app is free. If you use cloud transcription/AI cleanup, you pay your own API provider using your own key. The developer pays nothing and ships no keys.
 
 ## Privacy
-Only the audio clip and its transcript are sent, to the API providers you choose, using your own key. Keys stay on your PC (Windows Credential Manager). No telemetry.
+Only the audio clip and its transcript are sent, to the API providers you choose, using your own key. Keys stay on your PC (Windows Credential Manager). Each recording is deleted from disk as soon as it has been sent; no transcript history or logs are kept; no telemetry or crash reporting.
 
 ## Develop
 Requires Rust, Node.js and the Visual Studio C++ Build Tools.

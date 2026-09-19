@@ -1,5 +1,13 @@
 # Progress
 
+## M10 - Reliability & privacy defaults (built, awaiting human failure-case testing)
+- Checked first: no "keep recent recordings"/audio-retention setting was ever added, so nothing to remove.
+- Privacy: the temp WAV is deleted right after transcription finishes (success or failure), on any pipeline exit (`ProcessingGuard`), and at every app start. The "Show recording in folder" button and `reveal_recording` command are gone. No transcript logging (the only `eprintln!` prints microphone error text, never speech), no telemetry, no crash upload. "Last dictation" in Settings is memory-only. Settings has a Privacy section and the README states the same.
+- Failures now show a red FAILED pill for ~5.5 s with a short reason (full text in Settings status): no microphone / microphone blocked or unplugged (also mid-recording), no API key, invalid key (401/403), rate limit (429), no internet, timeout, wrong model/address (404), service error (5xx/other), bad response, recording too long, no speech / silent mic, cleanup returned nothing, insert failed. On any failure nothing is inserted. A panic inside the pipeline shows FAILED instead of leaving the app stuck.
+- Network: 10 s connect timeout (offline fails fast), 90 s overall timeout per request.
+- Code: `pipeline.rs` (`fail`, `short_reason`, `ProcessingGuard`), `audio.rs`, `net.rs`, `pill.*`, Settings page. 17 unit tests pass (new: short-reason mapping, level meter).
+- To test on purpose: unplug/disable mic; Windows Settings > Privacy > Microphone off; remove the key; save a wrong key; turn Wi-Fi off; set the model to a bogus name; press the hotkey and stay silent; hammer requests to hit a rate limit (hard to force).
+
 ## Fix: Settings said "No transcription key saved" while the key worked (post-rename)
 - Checked: Settings, transcription and cleanup all read the same Credential Manager entry (service "yapp", user `stt-api-key` / `llm-api-key`), and `migrate_legacy` writes to that same entry. The migrated key is present there (`stt-api-key.yapp`). So it was not a location mismatch.
 - Cause (most likely, not reproduced): the hidden Settings page loaded and asked for its state while the key migration in `setup` was still running, then kept the stale "no key" text; the pipeline reads the key fresh each time so it worked.

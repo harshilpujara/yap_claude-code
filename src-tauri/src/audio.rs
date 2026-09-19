@@ -2,7 +2,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SampleFormat, SizedSample};
 use serde::Serialize;
 use std::sync::mpsc::{self, Sender};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
@@ -12,6 +12,8 @@ struct Captured {
 }
 
 pub struct Recorder {
+    /// Set if the microphone stream reports an error while recording (e.g. unplugged).
+    failed: Arc<AtomicBool>,
     /// Loudness of the latest audio chunk (0.0 - 1.0 as f32 bits), for the live waveform.
     level: Arc<AtomicU32>,
     stop_tx: Sender<()>,
@@ -20,7 +22,6 @@ pub struct Recorder {
 
 #[derive(Serialize)]
 pub struct RecordingResult {
-    pub path: String,
     pub seconds: f32,
     pub original_seconds: f32,
     pub peak: f32,
@@ -34,11 +35,13 @@ impl Recorder {
         let (ready_tx, ready_rx) = mpsc::channel::<Result<(), String>>();
 
         let level = Arc::new(AtomicU32::new(0));
+        let failed = Arc::new(AtomicBool::new(false));
+        let thread_failed = failed.clone();
         let thread_level = level.clone();
         let handle = std::thread::spawn(move || {
             let buffer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
             let mut sample_rate = 0;
-            match open_stream(buffer.clone(), thread_level) {
+            match open_stream(buffer.clone(), thread_level, thread_failed) {
                 Ok((stream, rate)) => {
                     sample_rate = rate;
                     let _ = ready_tx.send(Ok(()));
@@ -54,7 +57,7 @@ impl Recorder {
         });
 
         match ready_rx.recv() {
-            Ok(Ok(())) => Ok(Recorder { level, stop_tx, handle }),
+            Ok(Ok(())) => Ok(Recorder { failed, level, stop_tx, handle }),
             Ok(Err(e)) => {
                 let _ = handle.join();
                 Err(e)
@@ -74,6 +77,9 @@ impl Recorder {
             .handle
             .join()
             .map_err(|_| "Microphone thread crashed.".to_string())?;
+        if self.failed.load(Ordering::Relaxed) {
+            return Err("The microphone was disconnected or stopped while recording. Check it and try again.".into());
+        }
         if captured.samples.is_empty() {
             return Err("No audio was captured.".into());
         }
@@ -81,7 +87,11 @@ impl Recorder {
     }
 }
 
-fn open_stream(buffer: Arc<Mutex<Vec<f32>>>, level: Arc<AtomicU32>) -> Result<(cpal::Stream, u32), String> {
+fn open_stream(
+    buffer: Arc<Mutex<Vec<f32>>>,
+    level: Arc<AtomicU32>,
+    failed: Arc<AtomicBool>,
+) -> Result<(cpal::Stream, u32), String> {
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -94,7 +104,10 @@ fn open_stream(buffer: Arc<Mutex<Vec<f32>>>, level: Arc<AtomicU32>) -> Result<(c
     let format = config.sample_format();
     let stream_config: cpal::StreamConfig = config.into();
 
-    let err_fn = |e| eprintln!("microphone stream error: {e}");
+    let err_fn = move |e: cpal::Error| {
+        eprintln!("microphone stream error: {e}");
+        failed.store(true, Ordering::Relaxed);
+    };
     let stream = match format {
         SampleFormat::F32 => build::<f32>(&device, &stream_config, channels, buffer, level.clone(), err_fn),
         SampleFormat::I16 => build::<i16>(&device, &stream_config, channels, buffer, level.clone(), err_fn),
@@ -136,6 +149,16 @@ where
             None,
         )
         .map_err(|e| format!("Could not open the microphone: {e}"))
+}
+
+/// Where the current clip lives while it is being processed. Deleted right after.
+pub fn last_recording_path() -> std::path::PathBuf {
+    std::env::temp_dir().join("yapp_last_recording.wav")
+}
+
+/// Privacy default: the audio is removed as soon as processing ends, success or failure.
+pub fn delete_last_recording() {
+    let _ = std::fs::remove_file(last_recording_path());
 }
 
 /// RMS loudness mapped to 0..1 on a curve that makes normal speech fill most of the range.
@@ -211,7 +234,7 @@ fn write_wav(c: &Captured) -> Result<RecordingResult, String> {
     let resampled = resample(&c.samples, c.sample_rate, TARGET_RATE);
     let trimmed = trim_silence(&resampled, TARGET_RATE);
 
-    let path = std::env::temp_dir().join("yapp_last_recording.wav");
+    let path = last_recording_path();
     let spec = hound::WavSpec {
         channels: 1,
         sample_rate: TARGET_RATE,
@@ -225,7 +248,6 @@ fn write_wav(c: &Captured) -> Result<RecordingResult, String> {
     }
     writer.finalize().map_err(|e| e.to_string())?;
     Ok(RecordingResult {
-        path: path.to_string_lossy().into_owned(),
         seconds: trimmed.len() as f32 / TARGET_RATE as f32,
         original_seconds,
         peak,

@@ -29,7 +29,7 @@ listen("yapp://level", (e) => {
 
 const WORDS = { processing: "Working" };
 
-listen("yapp://state", ({ payload: { state, message } }) => {
+listen("yapp://state", ({ payload: { state, message, short } }) => {
   pill.className = "pill " + state;
   if (state === "recording") {
     history.fill(0);
@@ -39,7 +39,12 @@ listen("yapp://state", ({ payload: { state, message } }) => {
     label.textContent = WORDS.processing;
     bars.forEach((b) => (b.style.height = ""));
   } else if (state === "error") {
-    label.textContent = message;
+    label.replaceChildren();
+    const title = document.createElement("b");
+    title.textContent = "Failed";
+    const why = document.createElement("span");
+    why.textContent = short || message;
+    label.append(title, why);
   }
 });
 draw();
