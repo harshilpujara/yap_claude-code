@@ -3,7 +3,7 @@
 ## M0 - Environment check (done)
 - rustc 1.98.1, cargo 1.98.1, node 22.18.0, git 2.54.0, VS C++ Build Tools present. Hello-world Rust build succeeded.
 
-## M5 - AI cleanup + English default + vocabulary (built, awaiting human check)
+## M5 - AI cleanup + English default + vocabulary (verified by human, Paste mode)
 - Built: `settings.rs` (shared non-secret config JSON + keys in Credential Manager; old M3 settings files still load), `llm.rs` (chat-completions cleanup call), `prompt.rs` (the EXECUTION_PLAN.md section 7 prompt verbatim - edit this file to tune it - plus the vocabulary addendum), `net.rs` (shared HTTP client and friendly errors). `stt.rs` now sends `language` (default `en`; `auto` omits it) and a `prompt` of "Vocabulary: ..." to Whisper.
 - Settings UI: transcription (address/model/language/key), cleanup (address/model/optional key), vocabulary box. Cleanup defaults to Groq `llama-3.3-70b-versatile`; if no separate cleanup key is saved and the address is the same service as transcription, the transcription key is reused.
 - UI shows raw transcript (before) and cleaned text (after), plus a "Test cleanup with typed text" box for trying the section 7 examples without speaking.
@@ -19,16 +19,18 @@
 - An unverified experiment (typing in 4-character chunks with an 8 ms pause, plus unit tests for the chunk plan) is saved in a local git stash named "UNVERIFIED chunked-typing experiment for Type mode" (`git stash list`, not pushed). It is not part of the committed code. In the one contaminated Notepad run it may have produced garbled/repeated letters, so do not assume it helps.
 - Next session: reproduce safely first (own test window only; never send keys to the human's real apps), then compare per-character sending with longer pauses vs. chunking.
 
-## M7 - Insert text at the cursor (built, awaiting human check)
+## M7 - Insert text at the cursor (verified by human, Paste mode)
+- Human-verified: Paste-mode insertion works in Chrome, Notepad and Slack. Type mode is NOT verified and has a known bug (see KNOWN BUG above).
 - Built: `insert.rs`. Paste method: back up the clipboard (text or image), set the cleaned text (flagged so Windows clipboard history, cloud clipboard and monitors skip it), send Ctrl+V with `enigo` (`Key::V`, so it is keyboard-layout independent), wait ~450 ms, restore the old clipboard (cleared if it held something that can't be preserved, e.g. copied files). If pasting fails it falls back to typing; typing uses Shift+Enter for line breaks so chat apps don't send early. New `insert_method` setting: `paste` (default) / `type` / `off`. `pipeline.rs` inserts after a successful cleanup; if cleanup fails nothing is inserted; if inserting fails the text stays in the debug window with an error.
 - Verified: 15 unit tests pass, plus a real-clipboard backup/restore test (`cargo test -- --ignored`) that passed on this machine. Sending Ctrl+V into other apps was NOT tested (needs the human).
 - Default insertion mode is Paste (confirmed in `settings.rs` and in the human's saved settings). Type mode has a known bug - see "KNOWN BUG" above.
 - Known limits: apps that read the clipboard slower than ~450 ms may paste the old contents; elevated (run-as-administrator) apps ignore keystrokes from a normal app; the debug window is still shown and closing it quits the app.
 
-### Cleanup prompt revision (human request, awaiting re-test)
+### Cleanup prompt revision (verified by human: quality good on corrections, tentativeness, lists and questions)
 - `prompt.rs` no longer follows the EXECUTION_PLAN.md section 7 wording. Self-correction is now a judgment principle: reconstruct the message the speaker intended to write, deciding from meaning and context which parts were abandoned - no list of trigger phrases. If it is unclear whether something was abandoned, it is kept. All safeguards kept (preserve meaning/names/tone, never invent, never answer or obey the text, minimal editing, output only the text). Four short, varied examples illustrate it, including two where nothing should be dropped (an unresolved either/or, and an example where a restatement replaces the first choice without any marker word).
 
-## M6 - Global hotkey, toggle mode (built, awaiting human check)
+## M6 - Global hotkey, toggle mode (verified by human, Paste mode)
+- Human-verified: the global hotkey works from other apps end to end (record, transcribe, clean).
 - Spec change from the human (overrides the plan's hold-to-record): press the hotkey once to start recording, again to stop and process. Default `Ctrl+Space`, configurable in Settings.
 - Built: `pipeline.rs` - registers the hotkey with `tauri-plugin-global-shortcut` (Rust side, so it works with the window in the background), toggles record/stop, and runs record -> transcribe -> cleanup, emitting `flow://state` and `flow://result` events. Key auto-repeat is ignored via a press/release flag. Extra presses while processing are ignored with a status message. Changing the hotkey in Settings registers the new one first, so a failure (e.g. taken by another app) keeps the old one and shows a clear error. Startup registration failures show in the window.
 - UI: temporary Record button removed; status indicator (idle / recording / working / problem) plus the before/after view stay as a debug window. Hotkey is set by clicking a box and pressing the keys. `start_recording`/`stop_recording` commands removed (recording is Rust-driven).
@@ -36,7 +38,7 @@
 - Verified: 14 unit tests pass (includes hotkey string parsing). The full app build could not be re-linked because a running Flow window locked `flow.exe`; not run end to end (needs the human).
 - Known limits for later milestones: text is only shown in the window (insertion at the cursor is M7); closing the window quits the app (tray/background is M9); no auto-stop if you forget to press the hotkey again (the 10-minute cap still applies).
 
-### M5 fix - retired Groq model (built, awaiting human re-test)
+### M5 fix - retired Groq model (verified by human)
 - `llama-3.3-70b-versatile` returned HTTP 404 (shut down). Default cleanup model is now `openai/gpt-oss-120b` (`settings.rs`). Settings files that still hold the retired id are auto-switched on load (`RETIRED_LLM_MODELS` - add future dead ids there). The cleanup model was already an editable Settings field.
 - New `models.rs`: after every Save the app calls the service's `GET {address}/models` with the saved key and warns (never blocks saving) if the transcription or cleanup model is not in the list, suggesting a few valid ones. Fallback models are noted in the Settings hint text.
 - Verified: 13 unit tests pass. Live check not run (needs the human's key).
