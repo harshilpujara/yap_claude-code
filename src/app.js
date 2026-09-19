@@ -2,8 +2,11 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const $ = (id) => document.getElementById(id);
 
+// Set this to the portfolio address to turn "Harshil" in the footer into a link.
+const PORTFOLIO_URL = "";
+
 function setStatus(text) {
-  $("status").textContent = text;
+  document.querySelectorAll(".status-msg").forEach((el) => (el.textContent = text));
 }
 
 // ---------- Live state from the Rust pipeline ----------
@@ -55,14 +58,18 @@ function hotkeyFromEvent(e) {
 $("hotkey").addEventListener("keydown", (e) => {
   e.preventDefault();
   const combo = hotkeyFromEvent(e);
-  if (combo) $("hotkey").value = combo;
+  if (combo) { $("hotkey").value = combo; dirty = true; }
 });
 $("hotkey-reset").addEventListener("click", () => {
   $("hotkey").value = "Ctrl+Space";
+  dirty = true;
 });
 
 // ---------- Settings ----------
-async function loadSettings() {
+let dirty = false; // true while the user has unsaved edits in the form
+
+async function loadSettings({ force = true } = {}) {
+  if (!force && dirty) return;
   const s = await invoke("get_settings");
   $("hotkey").value = s.hotkey;
   $("hotkey-label").textContent = s.hotkey;
@@ -107,6 +114,7 @@ async function saveSettings({ sttKey = null, llmKey = null } = {}) {
       sttKey,
       llmKey,
     });
+    dirty = false;
     await loadSettings();
     await showHotkeyStatus();
     setStatus("settings saved - checking models...");
@@ -155,16 +163,35 @@ $("test-run").addEventListener("click", async () => {
   }
 });
 
-// ---------- Tabs ----------
-function showTab(name) {
-  for (const t of ["settings", "insights"]) {
-    $("tab-" + t).hidden = t !== name;
-    $("tab-btn-" + t).classList.toggle("active", t === name);
+// ---------- Pages (sidebar) ----------
+const PAGES = ["dashboard", "input", "services", "vocab"];
+
+function showPage(name) {
+  for (const p of PAGES) {
+    $("page-" + p).hidden = p !== name;
   }
-  try { localStorage.setItem("yapp-tab", name); } catch (_) {}
-  if (name === "insights") loadStats().catch(() => {});
+  document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.page === name));
+  $("savebar").hidden = name === "dashboard";
+  $("content").scrollTop = 0;
+  if (name === "dashboard") loadStats().catch(() => {});
 }
-document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => showPage(b.dataset.page)));
+
+// Any edit in the settings pages marks the form as unsaved (so a refresh never wipes it).
+["input", "services", "vocab"].forEach((p) =>
+  $("page-" + p).addEventListener("input", (e) => { if (e.target.id !== "test-input") dirty = true; })
+);
+
+// ---------- Footer credit ----------
+if (PORTFOLIO_URL) {
+  $("creator").addEventListener("click", (e) => {
+    e.preventDefault();
+    invoke("open_url", { url: PORTFOLIO_URL }).catch((err) => setStatus("error - " + err));
+  });
+} else {
+  $("creator").removeAttribute("href");
+  $("creator").style.textDecoration = "none";
+}
 
 // ---------- Insights ----------
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -231,15 +258,15 @@ $("stats-reset").addEventListener("click", async () => {
 });
 listen("yapp://stats", () => loadStats().catch(() => {}));
 
-let savedTab = "settings";
-try { savedTab = localStorage.getItem("yapp-tab") || "settings"; } catch (_) {}
-showTab(savedTab === "insights" ? "insights" : "settings");
+showPage("dashboard");
 
 loadSettings().catch((e) => setStatus("error - " + e));
 // The window is hidden most of the time; re-read everything whenever it is brought up.
 window.addEventListener("focus", () => {
-  loadSettings().catch(() => {});
+  loadSettings({ force: false }).catch(() => {});
   showHotkeyStatus().catch(() => {});
-  if (!$("tab-insights").hidden) loadStats().catch(() => {});
+  if (!$("page-dashboard").hidden) loadStats().catch(() => {});
 });
+// Opening the window from the tray always lands on the Dashboard.
+listen("yapp://opened", () => showPage("dashboard"));
 showHotkeyStatus().catch(() => {});

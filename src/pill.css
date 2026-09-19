@@ -2,9 +2,9 @@
 :root {
   --pill-bg: rgba(24, 24, 27, 0.92);
   --pill-text: #f4f4f5;
-  --recording: #ef4444;
+  --recording: #ff6ec7;
   --working: #f59e0b;
-  --bar: #f4f4f5;
+  --bar: linear-gradient(180deg, #ff6ec7, #7c5cff); /* brand purple -> pink */
   --bar-width: 3px;
   --bar-gap: 3px;
 }
@@ -28,8 +28,8 @@ body { display: grid; place-items: center; }
 /* Problem: show a short message instead of the waveform. */
 .pill.error { height: 54px; border-radius: 27px; }
 .pill.error { border: 1px solid rgba(239, 68, 68, .6); }
-.pill.error .dot { animation: none; }
-.pill.error .label b { display: block; color: var(--recording); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.pill.error .dot { animation: none; background: #ef4444; }
+.pill.error .label b { display: block; color: #ff6b6b; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
 .pill.error .wave { display: none; }
 .pill.error .label { display: block; flex: 1; font-weight: 500; font-size: 12px; line-height: 1.25; max-height: 34px; overflow: hidden; }
 

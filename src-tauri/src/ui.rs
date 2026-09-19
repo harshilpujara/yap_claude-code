@@ -6,7 +6,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, PhysicalPosition, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewWindow};
 use tauri_plugin_autostart::ManagerExt;
 
 const PILL: &str = "pill";
@@ -19,6 +19,8 @@ pub fn show_settings(app: &AppHandle) {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
+        // The page goes back to the Dashboard whenever it is opened from the tray.
+        let _ = app.emit("yapp://opened", ());
     }
 }
 
@@ -102,6 +104,16 @@ pub fn sync_pill(app: &AppHandle, state: &str) {
             });
         }
     }
+}
+
+/// Opens a web link in the user's default browser (never inside the app window).
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    if !url.starts_with("https://") || url.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return Err("Only https:// links can be opened.".into());
+    }
+    // explorer.exe hands the address to the default browser without going through a shell.
+    std::process::Command::new("explorer").arg(&url).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 // ---------- Start on login ----------

@@ -43,6 +43,7 @@ fn main() {
             settings::get_settings,
             stats::get_stats,
             stats::reset_stats,
+            ui::open_url,
             ui::get_autostart,
             ui::set_autostart,
             settings::save_settings,
