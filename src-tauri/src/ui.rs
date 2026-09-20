@@ -11,8 +11,10 @@ use tauri_plugin_autostart::ManagerExt;
 
 const PILL: &str = "pill";
 const SETTINGS: &str = "main";
-/// Gap between the pill and the bottom of the screen's usable area, in logical pixels.
-const PILL_BOTTOM_MARGIN: f64 = 28.0;
+/// The pill window sits flush on the bottom edge of the usable screen area; the gap above
+/// that edge is drawn by the page itself, so the pill can slide out of / into that edge.
+/// How long the page's slide-out animation takes before the window is really hidden.
+const SLIDE_OUT: Duration = Duration::from_millis(380);
 
 pub fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(SETTINGS) {
@@ -73,9 +75,8 @@ fn place_pill(w: &WebviewWindow) {
     let Ok(Some(monitor)) = w.primary_monitor() else { return };
     let Ok(size) = w.outer_size() else { return };
     let area = monitor.work_area();
-    let margin = PILL_BOTTOM_MARGIN * monitor.scale_factor();
     let x = area.position.x + (area.size.width as i32 - size.width as i32) / 2;
-    let y = area.position.y + area.size.height as i32 - size.height as i32 - margin as i32;
+    let y = area.position.y + area.size.height as i32 - size.height as i32;
     let _ = w.set_position(PhysicalPosition::new(x, y));
 }
 
@@ -94,9 +95,17 @@ pub fn sync_pill(app: &AppHandle, state: &str) {
             let linger = if state == "error" { Duration::from_millis(5500) } else { Duration::from_millis(250) };
             let app = app.clone();
             std::thread::spawn(move || {
+                let still_current = |app: &AppHandle| {
+                    app.state::<PipelineState>().pill_generation.load(Ordering::SeqCst) == generation
+                };
                 std::thread::sleep(linger);
-                let st = app.state::<PipelineState>();
-                if st.pill_generation.load(Ordering::SeqCst) == generation {
+                if !still_current(&app) {
+                    return;
+                }
+                // Let the page slide the pill down out of view, then hide the window.
+                let _ = app.emit("yapp://pill-hide", ());
+                std::thread::sleep(SLIDE_OUT);
+                if still_current(&app) {
                     if let Some(w) = app.get_webview_window(PILL) {
                         let _ = w.hide();
                     }

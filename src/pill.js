@@ -9,8 +9,7 @@ const { listen } = window.__TAURI__.event;
 // yapp pill state -> orb state (real state names from thinking-orbs) and label.
 const ORB_STATES = {
   recording: { orb: "listening", text: "keep yapping" }, // a waveform rolling through rings
-  // The package itself labels `breathing` (a ring slowly morphing) as "Thinking".
-  processing: { orb: "breathing", text: "cleaning up your yap…" },
+  processing: { orb: "composing", text: "cleaning up your yap…" }, // an undulating multi-band sash
 };
 
 const PURPLE = [124, 92, 255];
@@ -99,8 +98,16 @@ function stopOrb() {
   raf = 0;
 }
 
+// The window is shown/hidden by Rust; the slide happens here. `.in` = risen into view.
+listen("yapp://pill-hide", () => {
+  pill.classList.remove("in");
+  setTimeout(() => { if (!pill.classList.contains("in")) stopOrb(); }, 400); // keep animating while it slides away
+});
+
 listen("yapp://state", ({ payload: { state, message, short } }) => {
-  pill.className = "pill " + state;
+  pill.classList.remove("idle", "recording", "processing", "error");
+  pill.classList.add(state);
+  if (state !== "idle") pill.classList.add("in");
   if (state === "recording" || state === "processing") {
     label.textContent = ORB_STATES[state].text;
     if (!raf || mode?.kind !== state) startOrb(state); // repeated "processing" events must not restart the animation
@@ -112,7 +119,7 @@ listen("yapp://state", ({ payload: { state, message, short } }) => {
     const why = document.createElement("span");
     why.textContent = short || message;
     label.append(title, why);
-  } else {
-    stopOrb();
   }
+  // "idle": nothing to do here - Rust follows up with yapp://pill-hide, and the orb
+  // keeps moving while the pill slides out.
 });
