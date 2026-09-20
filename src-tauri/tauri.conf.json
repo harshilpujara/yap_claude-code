@@ -3,33 +3,70 @@
   "productName": "yapp",
   "version": "0.1.0",
   "identifier": "com.yapp.app",
-  "build": { "frontendDist": "../src" },
+  "build": {
+    "frontendDist": "../web/dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm --prefix web run dev",
+    "beforeBuildCommand": "npm --prefix web run build"
+  },
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "label": "main", "title": "yapp", "width": 940, "height": 720, "minWidth": 720, "minHeight": 540, "resizable": true, "visible": false },
       {
-        "label": "pill", "url": "pill.html", "title": "yapp recording",
-        "width": 360, "height": 86, "resizable": false, "decorations": false, "transparent": true,
-        "shadow": false, "alwaysOnTop": true, "skipTaskbar": true, "focus": false, "focusable": false,
-        "visible": false, "maximizable": false, "minimizable": false
+        "label": "main",
+        "title": "yapp",
+        "width": 940,
+        "height": 720,
+        "minWidth": 720,
+        "minHeight": 540,
+        "resizable": true,
+        "visible": false
+      },
+      {
+        "label": "pill",
+        "url": "pill.html",
+        "title": "yapp recording",
+        "width": 360,
+        "height": 86,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false,
+        "focusable": false,
+        "visible": false,
+        "maximizable": false,
+        "minimizable": false
       }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "yapp",
     "shortDescription": "Free voice-to-text for Windows",
     "longDescription": "Hold a hotkey, talk, and clean text appears at your cursor. Uses your own API keys.",
     "copyright": "yapp",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
     "windows": {
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false,
-        "languages": ["English"]
+        "languages": [
+          "English"
+        ]
       }
     }
   }

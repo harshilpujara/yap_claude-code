@@ -15,8 +15,11 @@ Requires Rust, Node.js and the Visual Studio C++ Build Tools.
 
 ```
 npm install
+npm --prefix web install
 npm run tauri dev
 ```
+
+The app window is a React + Tailwind + shadcn/ui project in `web/` (Vite). `npm run tauri dev` starts it automatically. The recording pill is plain HTML/JS in `web/public/`.
 
 ## Build an installer
 Every push to `main` runs `.github/workflows/build.yml`, which builds the Windows installer (`yapp_<version>_x64-setup.exe`) and uploads it as a build artifact (Actions tab -> the run -> Artifacts).

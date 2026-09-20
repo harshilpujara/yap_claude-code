@@ -5,7 +5,7 @@
   "scripts": {
     "tauri": "tauri",
     "release": "node scripts/release.mjs",
-    "vendor:orbs": "node -e \"const f=require('fs');const s='node_modules/thinking-orbs/dist/engine.es.js';const v=JSON.parse(f.readFileSync('node_modules/thinking-orbs/package.json')).version;f.writeFileSync('src/vendor/thinking-orbs-engine.js','// thinking-orbs v'+v+' engine (MIT, (c) Jakub Antalik) - vendored from '+s+'. Refresh with: npm run vendor:orbs\\n'+f.readFileSync(s,'utf8'))\""
+    "vendor:orbs": "node -e \"const f=require('fs');const s='node_modules/thinking-orbs/dist/engine.es.js';const v=JSON.parse(f.readFileSync('node_modules/thinking-orbs/package.json')).version;f.writeFileSync('web/public/vendor/thinking-orbs-engine.js','// thinking-orbs v'+v+' engine (MIT, (c) Jakub Antalik) - vendored from '+s+'. Refresh with: npm run vendor:orbs\\n'+f.readFileSync(s,'utf8'))\""
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4"

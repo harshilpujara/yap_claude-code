@@ -31,6 +31,7 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm install
+      - run: npm --prefix web ci
       - run: npm run tauri build
       - uses: actions/upload-artifact@v4
         with:

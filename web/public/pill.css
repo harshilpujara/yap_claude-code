@@ -1,4 +1,12 @@
 /* Recording pill. Tweak the look here: colors and sizes are variables. */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url("fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+
 :root {
   --pill-bg: rgba(20, 20, 24, 0.94);
   --pill-text: #f4f4f5;
@@ -8,7 +16,7 @@
   --pill-height: 60px;
   --pill-gap: 24px; /* space between the pill and the bottom edge of the usable screen */
 }
-html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: system-ui, sans-serif; user-select: none; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Inter Variable", system-ui, sans-serif; user-select: none; }
 body { display: flex; align-items: flex-end; justify-content: center; }
 .pill {
   box-sizing: border-box; width: fit-content; max-width: 340px; height: var(--pill-height); margin-bottom: var(--pill-gap); padding: 0 22px 0 12px; border-radius: 999px;
