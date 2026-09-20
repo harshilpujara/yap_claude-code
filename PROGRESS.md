@@ -1,5 +1,13 @@
 # Progress
 
+## Release v0.2.0 (published)
+- Released 2026-09-20: https://github.com/harshilpujara/yap_claude-code/releases/tag/v0.2.0 with `yapp_0.2.0_x64-setup.exe` (3.4 MB) attached by the tag workflow. Both the `main` and the `v0.2.0` tag builds went green. (v0.1.0 was the first release.)
+- Includes everything since v0.1.0: rename to yapp, tray-only app + recording pill (thinking-orbs, slide in/out, Inter Light), M10 failure/privacy handling, Type mode removed, local stats + dashboard, shadcn/ui rebuild (React + Tailwind in `web/`), first-run onboarding dialog, portfolio link, brand icon.
+- Release checks done first: the workflow already runs `npm --prefix web ci` before `npm run tauri build`, and Tauri's `beforeBuildCommand` runs the Vite build, so CI compiles the new frontend (verified by a green build). A clean local `npm ci` + build also passed. A stray `yapp: file:..` self-dependency kept reappearing in `web/package.json` (a shadcn CLI artifact); it was reverted before release - if it shows up again, run `npm --prefix web uninstall yapp`.
+- The release script bumps `package.json`, `src-tauri/tauri.conf.json` and `Cargo.toml` (+ lockfile), not `web/package.json` (version there is irrelevant). Cut future releases with `npm run release -- X.Y.Z`, then `git push origin main` and `git push origin vX.Y.Z`.
+- Not yet human-verified: installing v0.2.0 from the Release on a clean machine, and the first-run onboarding flow inside the real app. Installer is still unsigned (SmartScreen warning: More info -> Run anyway).
+- Still parked: M8 (key/provider settings polish) and M12 (distribution write-up).
+
 ## First-run onboarding + pill weight + portfolio link (built, awaiting human test)
 - Onboarding (`web/src/components/Onboarding.tsx`, shadcn Dialog): decided once per launch right after settings load - opens only if NO API key (transcription or cleanup) is saved, so never on later launches and never mid-session if a key is removed later. Contents: welcome, free/bring-your-own-key, "works with any OpenAI-compatible provider - OpenAI, Groq, OpenRouter, and others" (Groq recommended), private-by-design, hotkey line (shows the current hotkey), and a console.groq.com/keys link that opens in the default browser. "Add your API key" closes it and goes to AI Services; "Later" (or X / Esc) dismisses it until the next launch. Rust already opens the window on launch when no key exists, so the dialog is what a first-time user sees.
 - The provider wording is one string (`web/src/lib/copy.ts`) shared by the dialog and a permanent info note at the top of AI Services (near the key fields).
