@@ -1,37 +1,25 @@
 /* Recording pill. Tweak the look here: colors and sizes are variables. */
 :root {
-  --pill-bg: rgba(24, 24, 27, 0.92);
+  --pill-bg: rgba(20, 20, 24, 0.94);
   --pill-text: #f4f4f5;
-  --recording: #ff6ec7;
-  --working: #f59e0b;
-  --bar: linear-gradient(180deg, #ff6ec7, #7c5cff); /* brand purple -> pink */
-  --bar-width: 3px;
-  --bar-gap: 3px;
+  --failed: #ef4444;
+  --failed-text: #ff6b6b;
+  --orb-size: 38px;
 }
 html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: system-ui, sans-serif; user-select: none; }
 body { display: grid; place-items: center; }
 .pill {
-  box-sizing: border-box; width: 276px; height: 44px; padding: 0 16px; border-radius: 999px;
-  display: flex; align-items: center; gap: 12px; color: var(--pill-text);
-  background: var(--pill-bg); box-shadow: 0 4px 16px rgba(0, 0, 0, .35);
+  box-sizing: border-box; width: 276px; height: 52px; padding: 0 18px 0 12px; border-radius: 999px;
+  display: flex; align-items: center; gap: 10px; color: var(--pill-text);
+  background: var(--pill-bg); box-shadow: 0 4px 16px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .06);
 }
-.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--recording); animation: pulse 1.1s ease-in-out infinite; }
-.wave { flex: 1; height: 28px; display: flex; align-items: center; justify-content: center; gap: var(--bar-gap); overflow: hidden; }
-.wave i { flex: none; width: var(--bar-width); height: 3px; border-radius: 2px; background: var(--bar); transition: height 60ms linear; }
-.label { flex: none; font-size: 13px; font-weight: 600; display: none; }
+.orb { flex: none; width: var(--orb-size); height: var(--orb-size); display: block; }
+.dot { display: none; flex: none; width: 10px; height: 10px; margin-left: 6px; border-radius: 50%; background: var(--failed); }
+.label { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Working: the waveform gives way to a soft shimmer. */
-.pill.processing .dot { background: var(--working); }
-.pill.processing .wave i { animation: shimmer 1s ease-in-out infinite; animation-delay: calc(var(--i) * 40ms); height: 6px; opacity: .6; }
-.pill.processing .label { display: block; }
-
-/* Problem: show a short message instead of the waveform. */
-.pill.error { height: 54px; border-radius: 27px; }
-.pill.error { border: 1px solid rgba(239, 68, 68, .6); }
-.pill.error .dot { animation: none; background: #ef4444; }
-.pill.error .label b { display: block; color: #ff6b6b; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
-.pill.error .wave { display: none; }
-.pill.error .label { display: block; flex: 1; font-weight: 500; font-size: 12px; line-height: 1.25; max-height: 34px; overflow: hidden; }
-
-@keyframes pulse { 50% { opacity: .35; } }
-@keyframes shimmer { 50% { height: 16px; opacity: 1; } }
+/* Failed: no orb - a red dot, the word FAILED and the short reason (from M10). */
+.pill.error { height: 54px; border-radius: 27px; border: 1px solid rgba(239, 68, 68, .6); }
+.pill.error .orb { display: none; }
+.pill.error .dot { display: block; }
+.pill.error .label { font-weight: 500; font-size: 12px; line-height: 1.25; white-space: normal; max-height: 34px; }
+.pill.error .label b { display: block; color: var(--failed-text); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }

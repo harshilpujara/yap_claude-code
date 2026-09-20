@@ -1,5 +1,13 @@
 # Progress
 
+## Pill: thinking-orbs (built, awaiting human test)
+- Package: `thinking-orbs` 0.3.1 (MIT), installed with npm. It is a React component, but it ships a framework-free `/engine` export (plain geometry + canvas code). So the pill stays vanilla JS: `dist/engine.es.js` (19 KB, no imports) is vendored to `src/vendor/thinking-orbs-engine.js` with its licence (`npm run vendor:orbs` refreshes it) and loaded as an ES module by `pill.js`. No React, no bundler.
+- Real state names (verified in the package typings): working, searching, solving, listening, connecting, weaving, composing, breathing, shaping. Mapping: recording -> `listening` (waveform rolling through rings) with "keep yapping"; processing -> `working` (particles on tilted orbits) with "cleaning up your yap..."; failed -> no orb, the existing red FAILED pill with the short reason from M10; idle -> hidden.
+- Mic reactivity: the package has no amplitude input, so `yapp://level` drives the orb's clock speed (0.6x-2.6x) and swells it (88%-112%) while recording.
+- Tint: the package paints grey only, so `pill.js` takes its frames (`MODE_FRAMES`) and paints the dots itself in purple -> pink. It uses the package's 20px preset (chunkier dots); the 64 preset was too faint at pill size.
+- Unchanged: bottom-centre placement, non-focusable + click-through, show/hide timing (`ui.rs` untouched). The old bar waveform code is gone.
+- Verified in a headless browser with simulated events (recording quiet/loud, processing, failed); not yet in the real app.
+
 ## Redesign: brand + dashboard-first layout (built, awaiting human test)
 - Brand: `brand/yapp-mark.png` -> app icon. It has a lot of empty margin and a white background, so `brand/yapp-icon-source.png` is that mark cropped tight and centred on a white rounded tile (made with System.Drawing); `npx tauri icon brand/yapp-icon-source.png` generated everything in `src-tauri/icons/` (exe, taskbar, window, tray, installer). `app-icon.png` is the same source. The full wordmark `brand/yapp-logo.png` is trimmed and downscaled to `src/assets/yapp-logo.png` (73 KB) for the header; in dark mode it is flipped to white with a CSS filter.
 - Layout: top bar with the wordmark; left sidebar Dashboard | Settings: Input, AI Services, Vocabulary; window is now 940x720 (min 720x540). Opening the window from the tray always lands on the Dashboard.
