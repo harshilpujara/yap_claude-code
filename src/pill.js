@@ -9,7 +9,8 @@ const { listen } = window.__TAURI__.event;
 // yapp pill state -> orb state (real state names from thinking-orbs) and label.
 const ORB_STATES = {
   recording: { orb: "listening", text: "keep yapping" }, // a waveform rolling through rings
-  processing: { orb: "working", text: "cleaning up your yap\u2026" }, // particles on tilted orbits
+  // The package itself labels `breathing` (a ring slowly morphing) as "Thinking".
+  processing: { orb: "breathing", text: "cleaning up your yap…" },
 };
 
 const PURPLE = [124, 92, 255];

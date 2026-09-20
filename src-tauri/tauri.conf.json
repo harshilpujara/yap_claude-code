@@ -10,7 +10,7 @@
       { "label": "main", "title": "yapp", "width": 940, "height": 720, "minWidth": 720, "minHeight": 540, "resizable": true, "visible": false },
       {
         "label": "pill", "url": "pill.html", "title": "yapp recording",
-        "width": 300, "height": 64, "resizable": false, "decorations": false, "transparent": true,
+        "width": 380, "height": 92, "resizable": false, "decorations": false, "transparent": true,
         "shadow": false, "alwaysOnTop": true, "skipTaskbar": true, "focus": false, "focusable": false,
         "visible": false, "maximizable": false, "minimizable": false
       }

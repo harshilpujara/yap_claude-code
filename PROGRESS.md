@@ -2,9 +2,10 @@
 
 ## Pill: thinking-orbs (built, awaiting human test)
 - Package: `thinking-orbs` 0.3.1 (MIT), installed with npm. It is a React component, but it ships a framework-free `/engine` export (plain geometry + canvas code). So the pill stays vanilla JS: `dist/engine.es.js` (19 KB, no imports) is vendored to `src/vendor/thinking-orbs-engine.js` with its licence (`npm run vendor:orbs` refreshes it) and loaded as an ES module by `pill.js`. No React, no bundler.
-- Real state names (verified in the package typings): working, searching, solving, listening, connecting, weaving, composing, breathing, shaping. Mapping: recording -> `listening` (waveform rolling through rings) with "keep yapping"; processing -> `working` (particles on tilted orbits) with "cleaning up your yap..."; failed -> no orb, the existing red FAILED pill with the short reason from M10; idle -> hidden.
+- Real state names (verified in the package typings): working, searching, solving, listening, connecting, weaving, composing, breathing, shaping. Mapping: recording -> `listening` (waveform rolling through rings) with "keep yapping"; processing -> `breathing` (a ring slowly morphing; the package labels it "Thinking") with "cleaning up your yap..." (was `working`, swapped at the human's request); failed -> no orb, the existing red FAILED pill with the short reason from M10; idle -> hidden.
 - Mic reactivity: the package has no amplitude input, so `yapp://level` drives the orb's clock speed (0.6x-2.6x) and swells it (88%-112%) while recording.
 - Tint: the package paints grey only, so `pill.js` takes its frames (`MODE_FRAMES`) and paints the dots itself in purple -> pink. It uses the package's 20px preset (chunkier dots); the 64 preset was too faint at pill size.
+- Pill size (later tweak): the capsule now hugs its content (`width: fit-content`, 68 px tall, 52 px orb, 18 px text; the transparent window is 380x92 so it never clips); failed pill text is 15 px.
 - Unchanged: bottom-centre placement, non-focusable + click-through, show/hide timing (`ui.rs` untouched). The old bar waveform code is gone.
 - Verified in a headless browser with simulated events (recording quiet/loud, processing, failed); not yet in the real app.
 

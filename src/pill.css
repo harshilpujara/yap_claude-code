@@ -4,22 +4,22 @@
   --pill-text: #f4f4f5;
   --failed: #ef4444;
   --failed-text: #ff6b6b;
-  --orb-size: 38px;
+  --orb-size: 52px;
 }
 html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: system-ui, sans-serif; user-select: none; }
 body { display: grid; place-items: center; }
 .pill {
-  box-sizing: border-box; width: 276px; height: 52px; padding: 0 18px 0 12px; border-radius: 999px;
-  display: flex; align-items: center; gap: 10px; color: var(--pill-text);
+  box-sizing: border-box; width: fit-content; max-width: 340px; height: 68px; padding: 0 26px 0 14px; border-radius: 999px;
+  display: flex; align-items: center; gap: 12px; color: var(--pill-text);
   background: var(--pill-bg); box-shadow: 0 4px 16px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .06);
 }
 .orb { flex: none; width: var(--orb-size); height: var(--orb-size); display: block; }
-.dot { display: none; flex: none; width: 10px; height: 10px; margin-left: 6px; border-radius: 50%; background: var(--failed); }
-.label { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { display: none; flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--failed); }
+.label { min-width: 0; font-size: 18px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Failed: no orb - a red dot, the word FAILED and the short reason (from M10). */
-.pill.error { height: 54px; border-radius: 27px; border: 1px solid rgba(239, 68, 68, .6); }
+.pill.error { height: auto; min-height: 68px; padding: 10px 26px 10px 20px; border-radius: 34px; border: 1px solid rgba(239, 68, 68, .6); }
 .pill.error .orb { display: none; }
 .pill.error .dot { display: block; }
-.pill.error .label { font-weight: 500; font-size: 12px; line-height: 1.25; white-space: normal; max-height: 34px; }
-.pill.error .label b { display: block; color: var(--failed-text); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.pill.error .label { font-weight: 500; font-size: 15px; line-height: 1.25; white-space: normal; }
+.pill.error .label b { display: block; color: var(--failed-text); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
