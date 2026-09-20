@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { ArrowRight, Book, Dashboard, Microphone, Sparks } from "iconoir-react"
 import logo from "@/assets/yapp-logo.png"
 import { Button } from "@/components/ui/button"
+import { Onboarding } from "@/components/Onboarding"
 import { PORTFOLIO_URL, api, errorText } from "@/lib/tauri"
 import { cn } from "@/lib/utils"
 import { useApp, type Page } from "@/state/app-state"
@@ -90,6 +91,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {page !== "dashboard" && <SaveBar />}
         </div>
       </div>
+      <Onboarding />
     </div>
   )
 }

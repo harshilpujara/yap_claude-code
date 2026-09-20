@@ -26,6 +26,8 @@ interface AppState {
   setLlmKey: (v: string) => void
   hasSttKey: boolean
   hasLlmKey: boolean
+  /** False until the first read of the saved settings has finished. */
+  settingsLoaded: boolean
   dirty: boolean
   save: () => Promise<void>
   removeKey: (which: "stt" | "llm") => Promise<void>
@@ -53,6 +55,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [llmKey, setLlmKey] = useState("")
   const [hasSttKey, setHasSttKey] = useState(false)
   const [hasLlmKey, setHasLlmKey] = useState(false)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [modelWarnings, setModelWarnings] = useState<string[] | null>(null)
   const [pipeline, setPipeline] = useState<PipelineState>("idle")
@@ -72,6 +75,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setSttKey("")
     setLlmKey("")
     setDirty(false)
+    setSettingsLoaded(true)
   }, [])
 
   const refreshHotkeyStatus = useCallback(() => {
@@ -137,10 +141,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppState>(
     () => ({
       page, setPage, form, update, sttKey, llmKey, setSttKey: (v) => { setSttKey(v); setDirty(true) },
-      setLlmKey: (v) => { setLlmKey(v); setDirty(true) }, hasSttKey, hasLlmKey, dirty, save, removeKey,
+      setLlmKey: (v) => { setLlmKey(v); setDirty(true) }, hasSttKey, hasLlmKey, settingsLoaded, dirty, save, removeKey,
       modelWarnings, pipeline, status, setStatus, hotkeyError, lastResult,
     }),
-    [page, form, update, sttKey, llmKey, hasSttKey, hasLlmKey, dirty, save, removeKey, modelWarnings,
+    [page, form, update, sttKey, llmKey, hasSttKey, hasLlmKey, settingsLoaded, dirty, save, removeKey, modelWarnings,
       pipeline, status, hotkeyError, lastResult],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

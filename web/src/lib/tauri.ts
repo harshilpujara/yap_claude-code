@@ -2,8 +2,8 @@
 import { invoke } from "@tauri-apps/api/core"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 
-/** Set this to the portfolio address to turn "Harshil" in the footer into a link. */
-export const PORTFOLIO_URL = ""
+/** Where "Harshil" in the footer links to (opens in the default browser). */
+export const PORTFOLIO_URL = "https://kaliyugg.framer.website/"
 
 export interface Config {
   stt_base_url: string

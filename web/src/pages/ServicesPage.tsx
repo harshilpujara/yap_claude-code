@@ -1,6 +1,7 @@
-import { Sparks, SoundHigh } from "iconoir-react"
+import { InfoCircle, Sparks, SoundHigh } from "iconoir-react"
 import { Field, PageHeader, SectionCard } from "@/components/parts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { PROVIDER_NOTE } from "@/lib/copy"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useApp } from "@/state/app-state"
@@ -12,6 +13,11 @@ export function ServicesPage() {
   return (
     <>
       <PageHeader title="AI Services" description="yapp uses your own API keys. Any OpenAI-compatible service works." />
+
+      <Alert>
+        <InfoCircle strokeWidth={1.75} />
+        <AlertDescription>{PROVIDER_NOTE}</AlertDescription>
+      </Alert>
 
       <SectionCard icon={SoundHigh} title="Transcription (speech to text)">
         <Field label="Service address" htmlFor="stt-base-url">

@@ -1,5 +1,13 @@
 # Progress
 
+## First-run onboarding + pill weight + portfolio link (built, awaiting human test)
+- Onboarding (`web/src/components/Onboarding.tsx`, shadcn Dialog): decided once per launch right after settings load - opens only if NO API key (transcription or cleanup) is saved, so never on later launches and never mid-session if a key is removed later. Contents: welcome, free/bring-your-own-key, "works with any OpenAI-compatible provider - OpenAI, Groq, OpenRouter, and others" (Groq recommended), private-by-design, hotkey line (shows the current hotkey), and a console.groq.com/keys link that opens in the default browser. "Add your API key" closes it and goes to AI Services; "Later" (or X / Esc) dismisses it until the next launch. Rust already opens the window on launch when no key exists, so the dialog is what a first-time user sees.
+- The provider wording is one string (`web/src/lib/copy.ts`) shared by the dialog and a permanent info note at the top of AI Services (near the key fields).
+- Portfolio: `PORTFOLIO_URL` = https://kaliyugg.framer.website/ in `web/src/lib/tauri.ts`; "Harshil" in the sidebar footer now links there (external browser).
+- Pill text is Inter Light (weight 300, including the failed reason); only the small FAILED tag stays at 500 so it still reads as a label.
+- shadcn `dialog` added by hand-fixing its imports/selectors (Radix `data-[state=...]`, iconoir close icon). The CLI also tried to add a bogus self-dependency `yapp: file:..`; removed.
+- Verified: tsc + build clean; dialog rendered headlessly (no key) and closes on Later. To test the first-run flow: remove the saved keys (Remove transcription/cleanup key in AI Services, or delete the "stt-api-key.yapp"/"llm-api-key.yapp" entries in Windows Credential Manager) and relaunch.
+
 ## Frontend rebuild: shadcn/ui dashboard + settings (built, awaiting human test)
 - New frontend in `web/`: Vite + React 19 + TypeScript + Tailwind v4 + shadcn/ui (Radix, style `radix-nova`, components in `web/src/components/ui`). Icons: `iconoir-react` everywhere (shadcn's Select icons were swapped from lucide to iconoir). Font: Inter (variable, bundled offline via `@fontsource-variable/inter`), also in the pill (`web/public/pill.css`, font copied to `web/public/fonts`).
 - Tauri now loads `web/dist` (`frontendDist`), with `devUrl` http://localhost:1420, `beforeDevCommand`/`beforeBuildCommand` running the Vite dev server/build. CI runs `npm --prefix web ci` first. The old `src/` (vanilla UI) is gone; the pill files and vendored orbs engine moved unchanged to `web/public/` (pill behavior untouched).
