@@ -64,7 +64,7 @@ arboard sets clipboard  →  enigo sends Ctrl+V   →  text lands at cursor
 1. **One milestone at a time**, in order. Finish, test, commit, then move on.
 2. **Before changing anything in a milestone**, inspect the current repo state so you
    don't break existing work.
-3. After each milestone: write a short entry in `PROGRESS.md` (what you built, what
+3. After each milestone: write a short entry in `docs/dev/PROGRESS.md` (what you built, what
    files changed, how to test it, anything the human must do).
 4. **Commit after every milestone** with a clear message. Small commits are good.
 5. **Never** hardcode API keys, tokens, or secrets. Never commit them. Maintain

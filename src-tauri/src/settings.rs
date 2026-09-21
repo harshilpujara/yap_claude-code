@@ -36,7 +36,7 @@ pub struct Config {
     /// Global toggle hotkey, e.g. "Ctrl+Space".
     pub hotkey: String,
     /// How the final text reaches the cursor: "paste" or "off" (show only).
-    /// ("type" was removed - see PROGRESS.md; a saved "type" is treated as "paste".)
+    /// ("type" was removed - see docs/dev/PROGRESS.md; a saved "type" is treated as "paste".)
     pub insert_method: String,
     /// Voice shortcuts: spoken trigger phrases and the text they expand to.
     pub shortcuts: Vec<Shortcut>,
