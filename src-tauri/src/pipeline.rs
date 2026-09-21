@@ -15,6 +15,11 @@ pub struct PipelineState {
     pub pill_generation: AtomicU64,
     /// True between a hotkey press and its release; Windows repeats presses while keys are held.
     key_down: AtomicBool,
+    /// When the last hotkey press event arrived (ms since the Unix epoch); see `on_hotkey`.
+    last_press_ms: AtomicU64,
+    /// Pill health check: the newest ping sent to the pill page and the newest answer.
+    pub ping_seq: AtomicU64,
+    pub pong_seq: AtomicU64,
     hotkey: Mutex<Option<Shortcut>>,
     hotkey_error: Mutex<Option<String>>,
 }
@@ -90,18 +95,79 @@ pub fn get_hotkey_status(state: tauri::State<PipelineState>) -> HotkeyStatus {
     HotkeyStatus { error: state.hotkey_error.lock().ok().and_then(|e| e.clone()) }
 }
 
+fn now_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+}
+
+/// Windows repeats presses while the keys are held (every ~30 ms after an initial delay).
+/// A "still down" flag alone can stick forever if a release is lost (e.g. across sleep), so a
+/// press is only treated as a repeat when the previous press event was very recent.
+const REPEAT_WINDOW_MS: u64 = 700;
+
 fn on_hotkey(app: &AppHandle, key_state: ShortcutState) {
     let st = app.state::<PipelineState>();
     match key_state {
         ShortcutState::Released => st.key_down.store(false, Ordering::SeqCst),
         ShortcutState::Pressed => {
-            if st.key_down.swap(true, Ordering::SeqCst) {
+            let now = now_ms();
+            let previous = st.last_press_ms.swap(now, Ordering::SeqCst);
+            if st.key_down.swap(true, Ordering::SeqCst) && now.saturating_sub(previous) < REPEAT_WINDOW_MS {
                 return; // auto-repeat from holding the keys
             }
             let app = app.clone();
-            tauri::async_runtime::spawn(async move { toggle(app).await });
+            // If the pipeline panics anywhere, say so on the pill rather than doing nothing.
+            let job = tauri::async_runtime::spawn({
+                let app = app.clone();
+                async move {
+                    crate::ui::ensure_pill_alive(&app).await;
+                    toggle(app).await
+                }
+            });
+            tauri::async_runtime::spawn(async move {
+                if job.await.is_err() {
+                    fail(&app, "Something unexpected went wrong inside yapp.");
+                }
+            });
         }
     }
+}
+
+/// After sleep/wake: forget input state that cannot be trusted, drop a recording whose
+/// microphone stream died with the sleep, and register the hotkey again.
+pub fn recover_after_resume(app: &AppHandle) {
+    let st = app.state::<PipelineState>();
+    st.key_down.store(false, Ordering::SeqCst);
+    if !st.processing.load(Ordering::SeqCst) {
+        let stale = st.recorder.lock().ok().and_then(|mut slot| slot.take());
+        if stale.is_some() {
+            drop(stale);
+            emit_state(app, "idle", "Recording stopped because the PC went to sleep.");
+        }
+    }
+    if let Err(e) = reregister_hotkey(app) {
+        set_startup_hotkey_error(app, e);
+    }
+}
+
+/// Registers the current hotkey again from scratch (the OS may have dropped it).
+fn reregister_hotkey(app: &AppHandle) -> Result<(), String> {
+    let state = app.state::<PipelineState>();
+    let shortcut = match state.hotkey.lock() {
+        Ok(mut cur) => cur.take(),
+        Err(_) => return Err("internal error".into()),
+    };
+    let Some(shortcut) = shortcut else { return Ok(()) };
+    let _ = app.global_shortcut().unregister(shortcut);
+    app.global_shortcut()
+        .on_shortcut(shortcut, |app, _shortcut, event| on_hotkey(app, event.state()))
+        .map_err(|e| format!("Could not register the hotkey again after wake-up ({e}). Restart yapp or pick a different hotkey."))?;
+    if let Ok(mut cur) = state.hotkey.lock() {
+        *cur = Some(shortcut);
+    }
+    if let Ok(mut err) = state.hotkey_error.lock() {
+        *err = None;
+    }
+    Ok(())
 }
 
 // ---------- Toggle + pipeline ----------
@@ -196,6 +262,7 @@ fn short_reason(detail: &str) -> String {
         ("too large", "Recording too large"),
         ("servers may be having trouble", "Service error - try again"),
         ("service returned an error", "Service error - try again"),
+        ("connection was interrupted", "Connection interrupted - try again"),
         ("network error", "Network error"),
         ("unexpected response", "Bad response from the service"),
         ("nothing was inserted", "Nothing to insert"),
@@ -300,6 +367,9 @@ mod tests {
             ("No speech detected - your microphone looks silent.", "Microphone seems silent"),
             ("No speech detected. Try again", "No speech detected"),
             ("The service returned an error. (HTTP 400)", "Service error - try again"),
+            ("The transcription service took too long to answer (timed out).", "Service timed out"),
+            ("That recording is too large to upload (30 MB).", "Recording too large"),
+            ("Network error talking to the transcription service: the connection was interrupted while sending (x).", "Connection interrupted - try again"),
             ("something odd", "Something went wrong"),
         ];
         for (detail, want) in cases {

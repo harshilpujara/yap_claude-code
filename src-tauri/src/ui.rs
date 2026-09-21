@@ -6,7 +6,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewWindow};
+use tauri::{AppHandle, Emitter, Listener, Manager, PhysicalPosition, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt;
 
 const PILL: &str = "pill";
@@ -69,6 +69,84 @@ pub fn prepare_pill(app: &AppHandle) {
     if let Some(w) = app.get_webview_window(PILL) {
         let _ = w.set_ignore_cursor_events(true);
     }
+    // The pill page answers `yapp://pill-ping` so we can tell a dead page from a live one.
+    let handle = app.clone();
+    app.listen("yapp://pill-pong", move |event| {
+        let n: u64 = event.payload().trim().parse().unwrap_or(0);
+        handle.state::<PipelineState>().pong_seq.fetch_max(n, Ordering::SeqCst);
+    });
+}
+
+/// Destroys the pill window and creates a fresh one from the config in tauri.conf.json.
+/// Blocking: call from a background thread, never from an event handler or sync command.
+fn rebuild_pill(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(PILL) {
+        let _ = w.destroy();
+    }
+    for _ in 0..100 {
+        if app.get_webview_window(PILL).is_none() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let Some(cfg) = app.config().app.windows.iter().find(|c| c.label == PILL).cloned() else { return };
+    match WebviewWindowBuilder::from_config(app, &cfg).and_then(|b| b.build()) {
+        Ok(w) => {
+            let _ = w.set_ignore_cursor_events(true);
+        }
+        Err(e) => eprintln!("yapp: could not recreate the pill window: {e}"),
+    }
+}
+
+/// Before each dictation: makes sure the pill window exists and its page is answering.
+/// After sleep/wake (or a WebView crash) the page can be gone while the window object is
+/// still there, which used to mean "pipeline runs, but nothing is drawn".
+pub async fn ensure_pill_alive(app: &AppHandle) {
+    let st = app.state::<PipelineState>();
+    if app.get_webview_window(PILL).is_some() {
+        let n = st.ping_seq.fetch_add(1, Ordering::SeqCst) + 1;
+        let _ = app.emit("yapp://pill-ping", n);
+        for _ in 0..30 {
+            if st.pong_seq.load(Ordering::SeqCst) >= n {
+                return;
+            }
+            let _ = tauri::async_runtime::spawn_blocking(|| std::thread::sleep(Duration::from_millis(10))).await;
+        }
+    }
+    let handle = app.clone();
+    let _ = tauri::async_runtime::spawn_blocking(move || rebuild_pill(&handle)).await;
+    // A new page needs a moment to load before it can hear events.
+    for _ in 0..30 {
+        let n = st.ping_seq.fetch_add(1, Ordering::SeqCst) + 1;
+        let _ = app.emit("yapp://pill-ping", n);
+        let _ = tauri::async_runtime::spawn_blocking(|| std::thread::sleep(Duration::from_millis(100))).await;
+        if st.pong_seq.load(Ordering::SeqCst) >= n {
+            return;
+        }
+    }
+}
+
+/// Detects the PC waking from sleep: this thread sleeps a few seconds at a time, so if far
+/// more wall-clock time than that has passed, the whole process was frozen (or the clock jumped).
+pub fn watch_for_resume(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        const TICK: Duration = Duration::from_secs(3);
+        let mut last = std::time::SystemTime::now();
+        loop {
+            std::thread::sleep(TICK);
+            let now = std::time::SystemTime::now();
+            let gap = now.duration_since(last).unwrap_or(Duration::ZERO);
+            last = now;
+            if gap > Duration::from_secs(15) {
+                // Give the network, audio devices and graphics a moment to come back.
+                std::thread::sleep(Duration::from_millis(1500));
+                crate::pipeline::recover_after_resume(&app);
+                rebuild_pill(&app);
+                last = std::time::SystemTime::now();
+            }
+        }
+    });
 }
 
 fn place_pill(w: &WebviewWindow) {
@@ -87,7 +165,10 @@ pub fn sync_pill(app: &AppHandle, state: &str) {
     let generation = st.pill_generation.fetch_add(1, Ordering::SeqCst) + 1;
     if state != "idle" {
         place_pill(&w);
-        let _ = w.show();
+        let _ = w.set_always_on_top(true); // the OS can drop this across sleep or display changes
+        if let Err(e) = w.show() {
+            eprintln!("yapp: could not show the pill: {e}");
+        }
     }
     match state {
         "recording" | "processing" => {}
@@ -127,6 +208,24 @@ pub fn open_url(url: String) -> Result<(), String> {
 
 // ---------- Start on login ----------
 
+/// The Windows "Run" entry stores the path of the exe that created it. A toggle switched on
+/// from a dev build (or an older install location) leaves a path that no longer exists, and
+/// the plugin still reports it as enabled. Rewriting the entry from the running exe fixes that.
+#[cfg(not(debug_assertions))]
+pub fn refresh_autostart(app: &AppHandle) {
+    let launcher = app.autolaunch();
+    if launcher.is_enabled().unwrap_or(false) {
+        if let Err(e) = launcher.enable() {
+            eprintln!("yapp: could not refresh the start-on-login entry: {e}");
+        }
+    }
+}
+
+#[cfg(debug_assertions)]
+pub fn refresh_autostart(_app: &AppHandle) {
+    // Dev builds must not write their temporary path into the user's login items.
+}
+
 #[tauri::command]
 pub fn get_autostart(app: AppHandle) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
@@ -135,6 +234,16 @@ pub fn get_autostart(app: AppHandle) -> bool {
 #[tauri::command]
 pub fn set_autostart(app: AppHandle, enabled: bool) -> Result<(), String> {
     let launcher = app.autolaunch();
-    let result = if enabled { launcher.enable() } else { launcher.disable() };
-    result.map_err(|e| format!("Could not change the start-on-login setting: {e}"))
+    let failed = |e: tauri_plugin_autostart::Error| format!("Could not change the start-on-login setting: {e}");
+    if enabled {
+        // Clear any stale entry first so the new one always points at this exe.
+        let _ = launcher.disable();
+        launcher.enable().map_err(failed)?;
+        if !launcher.is_enabled().unwrap_or(false) {
+            return Err("Windows did not keep the start-on-login entry. Try again, or check Task Manager > Startup apps.".into());
+        }
+        Ok(())
+    } else {
+        launcher.disable().map_err(failed)
+    }
 }

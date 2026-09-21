@@ -4,7 +4,12 @@
 // purple -> pink ourselves.
 import { MODE_FRAMES, resolvePreset } from "./vendor/thinking-orbs-engine.js";
 
-const { listen } = window.__TAURI__.event;
+const { listen, emit } = window.__TAURI__.event;
+
+// Health check: Rust pings before every dictation; no answer means this page is dead
+// (e.g. after sleep) and the window gets rebuilt. Also announce ourselves on load.
+listen("yapp://pill-ping", (e) => emit("yapp://pill-pong", Number(e.payload) || 0));
+emit("yapp://pill-pong", 0);
 
 // yapp pill state -> orb state (real state names from thinking-orbs) and label.
 const ORB_STATES = {
@@ -100,14 +105,35 @@ function stopOrb() {
 
 // The window is shown/hidden by Rust; the slide happens here. `.in` = risen into view.
 listen("yapp://pill-hide", () => {
+  clearTimeout(slideTimer);
   pill.classList.remove("in");
   setTimeout(() => { if (!pill.classList.contains("in")) stopOrb(); }, 400); // keep animating while it slides away
 });
 
+// Slide-in must start from the resting (below-screen) style, or the browser skips the
+// transition and the pill just pops in. So: make sure the resting style has been laid out,
+// then add `.in` on a later frame. The timeout covers a page that has not painted yet
+// (a window that was hidden or only just shown may not run animation frames right away).
+let slideTimer = 0;
+function slideIn() {
+  if (pill.classList.contains("in")) return;
+  void pill.offsetWidth; // commit the resting style
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(slideTimer);
+    void pill.offsetWidth;
+    pill.classList.add("in");
+  };
+  requestAnimationFrame(() => requestAnimationFrame(go));
+  slideTimer = setTimeout(go, 90);
+}
+
 listen("yapp://state", ({ payload: { state, message, short } }) => {
   pill.classList.remove("idle", "recording", "processing", "error");
   pill.classList.add(state);
-  if (state !== "idle") pill.classList.add("in");
+  if (state !== "idle") slideIn();
   if (state === "recording" || state === "processing") {
     label.textContent = ORB_STATES[state].text;
     if (!raf || mode?.kind !== state) startOrb(state); // repeated "processing" events must not restart the animation
