@@ -1,16 +1,23 @@
 # Build output
-/target
-/src-tauri/target
+target/
 /src-tauri/gen
-dist
-node_modules
+dist/
+node_modules/
+*.exe
+*.msi
+*.nsis
 
 # Secrets / local config
 .env
 .env.*
 *.local
 *.key
+*.pem
 secrets.*
+# yapp keeps API keys in Windows Credential Manager, but never commit a local
+# settings file if one is copied into the repo for testing.
+settings.json
+onboarding_seen
 
 # Temp audio
 *.wav
