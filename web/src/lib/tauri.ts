@@ -5,6 +5,11 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 /** Where "Harshil" in the footer links to (opens in the default browser). */
 export const PORTFOLIO_URL = "https://kaliyugg.framer.website/"
 
+export interface Shortcut {
+  trigger: string
+  expansion: string
+}
+
 export interface Config {
   stt_base_url: string
   stt_model: string
@@ -12,6 +17,7 @@ export interface Config {
   llm_base_url: string
   llm_model: string
   vocabulary: string
+  shortcuts: Shortcut[]
   hotkey: string
   insert_method: string
 }
@@ -55,6 +61,10 @@ export const api = {
   getHotkeyStatus: () => invoke<{ error: string | null }>("get_hotkey_status"),
   getAutostart: () => invoke<boolean>("get_autostart"),
   setAutostart: (enabled: boolean) => invoke<void>("set_autostart", { enabled }),
+  getOnboardingSeen: () => invoke<boolean>("get_onboarding_seen"),
+  setOnboardingSeen: () => invoke<void>("set_onboarding_seen"),
+  logOnboardingDecision: (show: boolean, reason: string) =>
+    invoke<void>("log_onboarding_decision", { show, reason }),
   getStats: () => invoke<StatsView>("get_stats"),
   resetStats: () => invoke<void>("reset_stats"),
   cleanupText: (raw: string) => invoke<string>("cleanup_text", { raw }),

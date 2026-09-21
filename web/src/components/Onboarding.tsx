@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from "react"
+import { useEffect, useState, type ComponentType, type ReactNode } from "react"
 import { ArrowRight, Cloud, Coins, KeyCommand, OpenNewWindow, ShieldCheck } from "iconoir-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,31 +25,57 @@ function Point({ icon: Icon, title, children }: { icon: Icon; title: string; chi
 }
 
 /**
- * First-run welcome. Decided once per launch, right after the saved settings are read:
- * it opens only if NO API key is saved (so never once a key exists, and never mid-session
- * if a key is removed later). "Later" hides it until the next start.
+ * First-run welcome. Whether it opens depends only on a separate "seen" marker kept by the
+ * backend (never on whether an API key is saved), and any way of closing it marks it seen.
+ * To see it again, delete %APPDATA%\com.yapp.app\onboarding_seen.
  */
 export function Onboarding() {
-  const { settingsLoaded, hasSttKey, hasLlmKey, setPage, setStatus, form } = useApp()
+  const { hasSttKey, hasLlmKey, setPage, setStatus, form } = useApp()
   const [open, setOpen] = useState(false)
-  const decided = useRef(false)
+  const haveKey = hasSttKey || hasLlmKey
+  // Decided once, right after this component mounts, from the onboarding_seen flag alone. It does
+  // not wait on settings/keys, and a failed check is retried (never silently treated as "seen").
   useEffect(() => {
-    if (settingsLoaded && !decided.current) {
-      decided.current = true
-      setOpen(!hasSttKey && !hasLlmKey)
+    let cancelled = false
+    const report = (show: boolean, reason: string) => {
+      console.info(`[onboarding] ${show ? "SHOW" : "SKIP"} - ${reason}`)
+      api.logOnboardingDecision(show, reason).catch(() => {})
     }
-  }, [settingsLoaded, hasSttKey, hasLlmKey])
+    const decide = (attempt: number) => {
+      api.getOnboardingSeen().then(
+        (seen) => {
+          if (cancelled) return
+          if (seen) report(false, "onboarding_seen flag is present")
+          else report(true, "onboarding_seen flag is absent")
+          setOpen(!seen)
+        },
+        (e) => {
+          if (cancelled) return
+          console.warn(`[onboarding] flag check failed (attempt ${attempt}): ${errorText(e)}`)
+          if (attempt < 5) setTimeout(() => decide(attempt + 1), 300 * attempt)
+          else report(true, `flag check failed 5 times (${errorText(e)}); showing so it is not missed`)
+          if (attempt >= 5) setOpen(true)
+        },
+      )
+    }
+    decide(1)
+    return () => { cancelled = true }
+  }, [])
 
+  const close = (next: boolean) => {
+    setOpen(next)
+    if (!next) api.setOnboardingSeen().catch(() => {})
+  }
   const addKey = () => {
-    setPage("services")
-    setOpen(false)
+    if (!haveKey) setPage("services")
+    close(false)
   }
   const openConsole = () => {
     api.openUrl(GROQ_KEYS_URL).catch((e) => setStatus("Error - " + errorText(e)))
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-w-lg gap-5 p-7 sm:max-w-lg">
         <DialogHeader className="gap-1.5">
           <DialogTitle className="text-xl font-semibold tracking-tight">Welcome to yapp</DialogTitle>
@@ -90,11 +116,17 @@ export function Onboarding() {
         </p>
 
         <DialogFooter className="gap-2 sm:justify-end">
-          <Button variant="outline" size="lg" onClick={() => setOpen(false)}>Later</Button>
-          <Button size="lg" onClick={addKey}>
-            Add your API key
-            <ArrowRight data-icon="inline-end" />
-          </Button>
+          {haveKey ? (
+            <Button size="lg" onClick={addKey}>Got it</Button>
+          ) : (
+            <>
+              <Button variant="outline" size="lg" onClick={() => close(false)}>Later</Button>
+              <Button size="lg" onClick={addKey}>
+                Add your API key
+                <ArrowRight data-icon="inline-end" />
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

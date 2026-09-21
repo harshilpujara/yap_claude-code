@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ArrowRight, Book, Dashboard, Microphone, Sparks } from "iconoir-react"
+import { ArrowRight, Book, Dashboard, Microphone, Sparks, Flash } from "iconoir-react"
 import logo from "@/assets/yapp-logo.png"
 import { Button } from "@/components/ui/button"
 import { Onboarding } from "@/components/Onboarding"
@@ -11,6 +11,7 @@ const NAV: { id: Page; label: string; icon: typeof Dashboard }[] = [
   { id: "input", label: "Input", icon: Microphone },
   { id: "services", label: "AI Services", icon: Sparks },
   { id: "vocab", label: "Vocabulary", icon: Book },
+  { id: "shortcuts", label: "Shortcuts", icon: Flash },
 ]
 
 function NavItem({ id, label, icon: Icon }: { id: Page; label: string; icon: typeof Dashboard }) {

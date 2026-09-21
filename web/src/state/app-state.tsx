@@ -6,11 +6,11 @@ import {
   type Config, type PipelineState, type ResultPayload, type StatePayload,
 } from "@/lib/tauri"
 
-export type Page = "dashboard" | "input" | "services" | "vocab"
+export type Page = "dashboard" | "input" | "services" | "vocab" | "shortcuts"
 
 const EMPTY_FORM: Config = {
   stt_base_url: "", stt_model: "", stt_language: "en",
-  llm_base_url: "", llm_model: "", vocabulary: "",
+  llm_base_url: "", llm_model: "", vocabulary: "", shortcuts: [],
   hotkey: "Ctrl+Space", insert_method: "paste",
 }
 

@@ -35,6 +35,15 @@ pub struct Config {
     /// How the final text reaches the cursor: "paste" or "off" (show only).
     /// ("type" was removed - see PROGRESS.md; a saved "type" is treated as "paste".)
     pub insert_method: String,
+    /// Voice shortcuts: spoken trigger phrases and the text they expand to.
+    pub shortcuts: Vec<Shortcut>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default, PartialEq, Debug)]
+#[serde(default)]
+pub struct Shortcut {
+    pub trigger: String,
+    pub expansion: String,
 }
 
 impl Default for Config {
@@ -48,6 +57,7 @@ impl Default for Config {
             vocabulary: String::new(),
             hotkey: "Ctrl+Space".into(),
             insert_method: "paste".into(),
+            shortcuts: Vec::new(),
         }
     }
 }
@@ -60,6 +70,30 @@ impl Config {
             .filter(|w| !w.is_empty())
             .collect()
     }
+}
+
+const MAX_SHORTCUTS: usize = 100;
+const MAX_TRIGGER_CHARS: usize = 100;
+const MAX_EXPANSION_CHARS: usize = 2000;
+
+/// Trims, drops rows with an empty trigger or expansion, and drops repeated triggers.
+fn clean_shortcuts(list: Vec<Shortcut>) -> Vec<Shortcut> {
+    let mut out: Vec<Shortcut> = Vec::new();
+    for s in list {
+        let trigger: String = s.trigger.trim().chars().take(MAX_TRIGGER_CHARS).collect();
+        let expansion: String = s.expansion.trim().chars().take(MAX_EXPANSION_CHARS).collect();
+        if trigger.is_empty() || expansion.is_empty() {
+            continue;
+        }
+        if out.iter().any(|o| o.trigger.eq_ignore_ascii_case(&trigger)) {
+            continue;
+        }
+        out.push(Shortcut { trigger, expansion });
+        if out.len() >= MAX_SHORTCUTS {
+            break;
+        }
+    }
+    out
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -221,6 +255,7 @@ pub fn save_settings(
         return Err("Language must be a short code like \"en\", or \"auto\".".into());
     }
     c.vocabulary = c.vocabulary.trim().chars().take(MAX_VOCAB_CHARS).collect();
+    c.shortcuts = clean_shortcuts(c.shortcuts);
     c.hotkey = c.hotkey.trim().to_string();
     if c.hotkey.is_empty() {
         return Err("Please choose a hotkey.".into());
@@ -265,4 +300,40 @@ mod tests {
     fn host_comparison() {
         assert_eq!(host_of("https://api.groq.com/openai/v1"), "api.groq.com");
     }
+}
+
+// ---------- First-run onboarding ----------
+
+/// A marker file, separate from the settings and API keys, so the welcome dialog depends on
+/// "has this person seen it?" and not on whether a key happens to be saved already.
+fn onboarding_marker(app: &AppHandle) -> Option<PathBuf> {
+    Some(app.path().app_config_dir().ok()?.join("onboarding_seen"))
+}
+
+/// Solely whether the marker file exists; an unresolvable config folder counts as "absent".
+pub fn onboarding_seen(app: &AppHandle) -> bool {
+    onboarding_marker(app).map(|p| p.exists()).unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn get_onboarding_seen(app: AppHandle) -> bool {
+    let seen = onboarding_seen(&app);
+    let marker = onboarding_marker(&app).map(|p| p.display().to_string()).unwrap_or_else(|| "<no config folder>".into());
+    eprintln!("yapp: onboarding_seen={seen} (marker: {marker})");
+    seen
+}
+
+/// Frontend reports its show/skip decision here so it lands in the same log as the check above.
+#[tauri::command]
+pub fn log_onboarding_decision(show: bool, reason: String) {
+    eprintln!("yapp: onboarding {} - {reason}", if show { "SHOW" } else { "SKIP" });
+}
+
+#[tauri::command]
+pub fn set_onboarding_seen(app: AppHandle) -> Result<(), String> {
+    let path = onboarding_marker(&app).ok_or("No config folder.")?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(path, "1").map_err(|e| e.to_string())
 }

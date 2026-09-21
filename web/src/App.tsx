@@ -4,6 +4,7 @@ import { Dashboard } from "@/pages/Dashboard"
 import { InputPage } from "@/pages/InputPage"
 import { ServicesPage } from "@/pages/ServicesPage"
 import { VocabularyPage } from "@/pages/VocabularyPage"
+import { ShortcutsPage } from "@/pages/ShortcutsPage"
 
 function CurrentPage() {
   const { page } = useApp()
@@ -11,6 +12,7 @@ function CurrentPage() {
     case "input": return <InputPage />
     case "services": return <ServicesPage />
     case "vocab": return <VocabularyPage />
+    case "shortcuts": return <ShortcutsPage />
     default: return <Dashboard />
   }
 }

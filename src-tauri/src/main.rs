@@ -28,10 +28,12 @@ fn main() {
             ui::hide_settings_on_close(&handle);
             ui::prepare_pill(&handle);
             ui::setup_tray(&handle)?;
-            // Nothing to see until a key exists, so guide first-time users to Settings.
-            if !settings::has_any_key() {
+            // First-time users (no key yet, or welcome dialog not seen) start in Settings.
+            if !settings::has_any_key() || !settings::onboarding_seen(&handle) {
                 ui::show_settings(&handle);
             }
+            ui::refresh_autostart(&handle);
+            ui::watch_for_resume(&handle);
             let cfg = settings::load_config(&handle);
             if let Err(e) = pipeline::register_hotkey(&handle, &cfg.hotkey) {
                 pipeline::set_startup_hotkey_error(&handle, e);
@@ -47,6 +49,9 @@ fn main() {
             ui::get_autostart,
             ui::set_autostart,
             settings::save_settings,
+            settings::get_onboarding_seen,
+            settings::set_onboarding_seen,
+            settings::log_onboarding_decision,
             models::check_models,
             stt::transcribe_last,
             llm::cleanup_text
