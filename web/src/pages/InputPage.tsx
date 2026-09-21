@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { hotkeyFromEvent } from "@/lib/format"
+import { languageOptions } from "@/lib/languages"
 import { api, errorText } from "@/lib/tauri"
 import { useApp } from "@/state/app-state"
 
@@ -68,9 +69,37 @@ export function InputPage() {
       </SectionCard>
 
       <SectionCard icon={Microphone} title="Language & inserting text">
-        <Field label='Language (e.g. en, hi, es - or "auto" to detect)' htmlFor="stt-language">
-          <Input id="stt-language" spellCheck={false} value={form.stt_language} onChange={(e) => update({ stt_language: e.target.value })} />
+        <Field
+          label="Language"
+          htmlFor="stt-language"
+          hint="Auto-detect works out the spoken language for each dictation and cleans the text in that same language. It never translates."
+        >
+          <Select value={form.stt_language} onValueChange={(v) => update({ stt_language: v })}>
+            <SelectTrigger id="stt-language" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">Auto-detect</SelectItem>
+              {languageOptions(form.stt_language === "auto" ? "" : form.stt_language).map((l) => (
+                <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
+        {form.stt_language === "auto" && (
+          <Field
+            label="Primary language"
+            htmlFor="primary-language"
+            hint="Detection can guess wrong on very short or unclear clips. For those, yapp falls back to this language. Longer, clear clips are still auto-detected."
+          >
+            <Select value={form.primary_language} onValueChange={(v) => update({ primary_language: v })}>
+              <SelectTrigger id="primary-language" className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {languageOptions(form.primary_language).map((l) => (
+                  <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
         <Field label="How the cleaned text reaches your cursor" htmlFor="insert-method">
           <Select value={form.insert_method} onValueChange={(v) => update({ insert_method: v })}>
             <SelectTrigger id="insert-method" className="w-full"><SelectValue /></SelectTrigger>

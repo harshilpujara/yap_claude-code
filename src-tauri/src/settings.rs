@@ -26,6 +26,9 @@ pub struct Config {
     pub stt_model: String,
     /// ISO-639-1 code such as "en", or "auto" to let the service detect it.
     pub stt_language: String,
+    /// Used when `stt_language` is "auto": biases detection and is the fallback for very short
+    /// or low-confidence clips, where detection is unreliable.
+    pub primary_language: String,
     pub llm_base_url: String,
     pub llm_model: String,
     /// Names and uncommon words, separated by commas or new lines.
@@ -52,6 +55,7 @@ impl Default for Config {
             stt_base_url: DEFAULT_BASE_URL.into(),
             stt_model: DEFAULT_STT_MODEL.into(),
             stt_language: "en".into(),
+            primary_language: "en".into(),
             llm_base_url: DEFAULT_BASE_URL.into(),
             llm_model: DEFAULT_LLM_MODEL.into(),
             vocabulary: String::new(),
@@ -249,10 +253,13 @@ pub fn save_settings(
         return Err("Please enter a model name for both services.".into());
     }
     c.stt_language = c.stt_language.trim().to_lowercase();
-    let lang_ok = c.stt_language == "auto"
-        || ((2..=3).contains(&c.stt_language.len()) && c.stt_language.chars().all(|ch| ch.is_ascii_lowercase()));
-    if !lang_ok {
+    let is_code = |l: &str| (2..=3).contains(&l.len()) && l.chars().all(|ch| ch.is_ascii_lowercase());
+    if c.stt_language != "auto" && !is_code(&c.stt_language) {
         return Err("Language must be a short code like \"en\", or \"auto\".".into());
+    }
+    c.primary_language = c.primary_language.trim().to_lowercase();
+    if !is_code(&c.primary_language) {
+        return Err("Primary language must be a short code like \"en\".".into());
     }
     c.vocabulary = c.vocabulary.trim().chars().take(MAX_VOCAB_CHARS).collect();
     c.shortcuts = clean_shortcuts(c.shortcuts);

@@ -14,6 +14,7 @@ export interface Config {
   stt_base_url: string
   stt_model: string
   stt_language: string
+  primary_language: string
   llm_base_url: string
   llm_model: string
   vocabulary: string

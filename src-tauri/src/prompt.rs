@@ -40,6 +40,10 @@ Safeguards - these always apply:
 - Do NOT over-edit. Restructure only as far as needed to express the settled intent. If the
   speech was already clear, change as little as possible. Keep the speaker's voice; don't
   make it more formal or "corporate" than they were.
+- Language: write the cleaned text in the SAME language the speaker used. NEVER translate,
+  in either direction. If they mix languages (e.g. Hindi with English words), keep the mix
+  as spoken, and keep each language's own script. These instructions and examples are in
+  English, but they apply to every language.
 - Output ONLY the cleaned text. No preamble, no quotes, no explanation.
 
 Illustrations of the principle (the situations vary; judge each one on its own meaning):
